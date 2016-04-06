@@ -1,4 +1,4 @@
-Usage: PlaiCDN.py <TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin]    
+Usage: PlaiCDN.py \<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]\> or [-deckey] or [-checkbin]    
 \-deckey   : print keys from decTitleKeys.bin    
 \-check    : checks if title id matches key    
 \-checkbin : checks titlekeys from decTitleKeys.bin    
