@@ -8,4 +8,4 @@ Usage: PlaiCDN.py \<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]\
 \-no3ds    : don't build 3DS file    
 \-nocia    : don't build CIA file    
 
-Requires [makerom](https://github.com/profi200/Project_CTR/releases)
+Requires [makerom](https://github.com/profi200/Project_CTR/releases) and [Python 3](https://www.python.org/downloads/).
