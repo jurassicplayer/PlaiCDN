@@ -54,7 +54,7 @@ def chunk_read(response, outfname, chunk_size=2*1024*1024, report_hook=None):
 ##########
 
 def SystemUsage():
-    print 'Usage: CDNto3DS.py <TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin]'
+    print 'Usage: PlaiCDN.py <TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin]'
     print '-deckey   : print keys from decTitleKeys.bin'
     print '-check    : checks if title id matches key'
     print '-checkbin : checks titlekeys from decTitleKeys.bin'
