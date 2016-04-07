@@ -115,19 +115,17 @@ for i in xrange(len(sys.argv)) :
                         continue
 
                     tmd = tmd.read()
-
-                    cOffs = 0xB04
-                    cID = format(unpack('>I', tmd[cOffs:cOffs+4])[0], '08x')
-                    cIDX = format(unpack('>H', tmd[cOffs+4:cOffs+6])[0], '04x')
-                    cSIZE = format(unpack('>Q', tmd[cOffs+8:cOffs+16])[0], 'd')
-                    cHASH = format(unpack('>32s', tmd[cOffs+16:cOffs+48])[0])
-                    # use range requests to download bytes 0 through 271, needed because AES-128-CBC encrypts in chunks of 128 bits
-                    try:
-                        checkReq = urllib2.Request("%s/%s"%(baseurl, cID))
-                        checkReq.headers['Range'] = 'bytes=%s-%s' % (0, 271)
-                        checkTemp = urllib2.urlopen(checkReq)
-                    except urllib2.URLError, e:
-                        continue
+                    contentCount = unpack('>H', tmd[0x206:0x208])[0]
+                    for i in xrange(contentCount):
+                        cOffs = 0xB04+(0x30*i)
+                        cID = format(unpack('>I', tmd[cOffs:cOffs+4])[0], '08x')
+                        # use range requests to download bytes 0 through 271, needed because AES-128-CBC encrypts in chunks of 128 bits
+                        try:
+                            checkReq = urllib2.Request("%s/%s"%(baseurl, cID))
+                            checkReq.headers['Range'] = 'bytes=%s-%s' % (0, 271)
+                            checkTemp = urllib2.urlopen(checkReq)
+                        except urllib2.URLError, e:
+                            continue
 
                     # set IV to offset 0xf0 length 0x10 of ciphertext; thanks to yellows8 for the offset
                     checkTempPerm = checkTemp.read()
@@ -265,8 +263,8 @@ for i in xrange(contentCount):
             checkReq.headers['Range'] = 'bytes=%s-%s' % (0, 271)
             checkTemp = urllib2.urlopen(checkReq)
         except urllib2.URLError, e:
-            print 'ERROR: Bad title ID?'
-            raise SystemExit(0)
+            print 'ERROR: Possibly wrong container?\n'
+            continue
 
         # set IV to offset 0xf0 length 0x10 of ciphertext; thanks to yellows8 for the offset
         checkTempPerm = checkTemp.read()
