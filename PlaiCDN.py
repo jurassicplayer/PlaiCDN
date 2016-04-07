@@ -96,7 +96,6 @@ for i in xrange(len(sys.argv)) :
 
 for i in xrange(len(sys.argv)) :
     if sys.argv[i] == '-checkbin':
-        tmdFail = 0
         with open('decTitleKeys.bin', 'rb') as fh:
             nEntries = os.fstat(fh.fileno()).st_size / 32
             fh.seek(16, os.SEEK_SET)
@@ -107,33 +106,28 @@ for i in xrange(len(sys.argv)) :
                 decryptedTitleKey = fh.read(16)
 
                 baseurl = 'http://nus.cdn.c.shop.nintendowifi.net/ccs/download/' + hexlify(titleId)
-                try:
-                    tmd = urllib2.urlopen(baseurl + '/tmd')
-                except urllib2.URLError, e:
-                    print 'ERROR: Could not retrieve TMD, bad title ID?'
-                    tmdFail = 1
+                if hexlify(titleId)[:8] != '00040000':
+                    continue
+                else :
+                    try:
+                        tmd = urllib2.urlopen(baseurl + '/tmd')
+                    except urllib2.URLError, e:
+                        continue
 
-                if tmdFail == 0 and titleId[:8] == '00040000':
                     tmd = tmd.read()
 
-                    cOffs = 0xB04+(0x30*i)
+                    cOffs = 0xB04
                     cID = format(unpack('>I', tmd[cOffs:cOffs+4])[0], '08x')
                     cIDX = format(unpack('>H', tmd[cOffs+4:cOffs+6])[0], '04x')
                     cSIZE = format(unpack('>Q', tmd[cOffs+8:cOffs+16])[0], 'd')
                     cHASH = format(unpack('>32s', tmd[cOffs+16:cOffs+48])[0])
                     # use range requests to download bytes 0 through 271, needed because AES-128-CBC encrypts in chunks of 128 bits
-                    print hexlify(titleId)
-                    print 'Content ID:    ' + cID
-                    print 'Content Index: ' + cIDX
-                    print 'Content Size:  ' + cSIZE
-                    print 'Content Hash:  ' + hexlify(cHASH)
-
                     try:
                         checkReq = urllib2.Request("%s/%s"%(baseurl, cID))
                         checkReq.headers['Range'] = 'bytes=%s-%s' % (0, 271)
                         checkTemp = urllib2.urlopen(checkReq)
                     except urllib2.URLError, e:
-                        print 'ERROR: Could not retrieve content, bad title ID?'
+                        continue
 
                     # set IV to offset 0xf0 length 0x10 of ciphertext; thanks to yellows8 for the offset
                     checkTempPerm = checkTemp.read()
@@ -144,9 +138,9 @@ for i in xrange(len(sys.argv)) :
                     checkTempOut = decryptor.decrypt(checkTempPerm)[0x100:0x104]
 
                     if 'NCCH' not in checkTempOut:
-                        print 'ERROR: Titlekey ' + decryptedTitleKey + ' does not match title ID ' + titleId
-
-                    print 'Title ID ' + hexlify(titleId) + ' successfully verified to match titlekey ' + hexlify(decryptedTitleKey)
+                        continue
+                    else :
+                        print 'Title ID ' + hexlify(titleId) + ' successfully verified to match titlekey ' + hexlify(decryptedTitleKey)
             raise SystemExit(0)
 
 
@@ -250,16 +244,9 @@ for i in xrange(contentCount):
     cOffs = 0xB04+(0x30*i)
     cID = format(unpack('>I', tmd[cOffs:cOffs+4])[0], '08x')
     cIDX = format(unpack('>H', tmd[cOffs+4:cOffs+6])[0], '04x')
-
-    # If not normal application, don't make 3ds
-    if unpack('>H', tmd[cOffs+4:cOffs+6])[0] >= 8 :
-        make3ds = 0
-
-    cOffs = 0xB04+(0x30*i)
-    cID = format(unpack('>I', tmd[cOffs:cOffs+4])[0], '08x')
-    cIDX = format(unpack('>H', tmd[cOffs+4:cOffs+6])[0], '04x')
     cSIZE = format(unpack('>Q', tmd[cOffs+8:cOffs+16])[0], 'd')
     cHASH = format(unpack('>32s', tmd[cOffs+16:cOffs+48])[0])
+    # If not normal application, don't make 3ds
     if unpack('>H', tmd[cOffs+4:cOffs+6])[0] >= 8 :
         make3ds = 0
 
