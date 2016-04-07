@@ -1,7 +1,7 @@
 #script is modified from https://github.com/Relys/3DS_Multi_Decryptor/blob/master/to3DS/CDNto3DS/CDNto3DS.py
 #requires PyCrypto to be installed (pip install PyCrypto)
 #requires makerom (https://github.com/profi200/Project_CTR/releases)
-#
+#this is a Python 3 script
 
 import os
 import platform
