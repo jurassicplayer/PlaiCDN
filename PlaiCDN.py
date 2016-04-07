@@ -3,6 +3,7 @@
 #requires makerom (https://github.com/profi200/Project_CTR/releases)
 
 import os
+import platform
 import struct
 import errno
 import sys
@@ -203,8 +204,13 @@ if tmd[:4] != '\x00\x01\x00\x04':
 if titleid[:8] != '00040000':
     make3ds = 0
 
-mCiaCmd = 'makerom -f cia -rsf rom.rsf -o ' + titleid + '.cia'
-mRomCmd = 'makerom -f cci -rsf rom.rsf -nomodtid -o ' + titleid + '.3ds'
+# Check for Mac OS X
+if platform.system() == "Darwin" :
+    mCiaCmd = './makerom -f cia -rsf rom.rsf -o ' + titleid + '.cia'
+    mRomCmd = './makerom -f cci -rsf rom.rsf -nomodtid -o ' + titleid + '.3ds'
+else :
+    mCiaCmd = 'makerom -f cia -rsf rom.rsf -o ' + titleid + '.cia'
+    mRomCmd = 'makerom -f cci -rsf rom.rsf -nomodtid -o ' + titleid + '.3ds'
 
 # Set Proper CommonKey ID
 if unpack('>H', tmd[0x18e:0x190])[0] & 0x10 == 0x10 :
