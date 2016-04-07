@@ -26,7 +26,8 @@ def mkdir_p(path):
 def chunk_report(bytes_so_far, chunk_size, total_size):
     percent = float(bytes_so_far) / total_size
     percent = round(percent*100, 2)
-    print("Downloaded %d of %d bytes (%0.2f%%)" % (bytes_so_far, total_size, percent))
+    sys.stdout.write("\rDownloaded %d of %d bytes (%0.2f%%)" % (bytes_so_far, total_size, percent))
+    sys.stdout.flush()
 
     if bytes_so_far >= total_size:
         print('\n')
