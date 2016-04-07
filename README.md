@@ -8,4 +8,4 @@ Usage: PlaiCDN.py \<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]\
 \-no3ds    : don't build 3DS file    
 \-nocia    : don't build CIA file    
 
-Requires [makerom](https://github.com/profi200/Project_CTR/releases) to be in the directory, [Python 3](https://www.python.org/downloads/) to be installed, and [PyCrypto](https://pypi.python.org/pypi/pycrypto) to be installed.
+Requires [makerom](https://github.com/profi200/Project_CTR/releases) to be in the directory, [Python](https://www.python.org/downloads/) to be installed, and [PyCrypto](https://pypi.python.org/pypi/pycrypto) to be installed.
