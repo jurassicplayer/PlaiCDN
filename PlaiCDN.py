@@ -140,7 +140,7 @@ for i in xrange(len(sys.argv)) :
                     if 'NCCH' not in checkTempOut:
                         continue
                     else :
-                        print 'Title ID ' + hexlify(titleId) + ' successfully verified to match titlekey ' + hexlify(decryptedTitleKey)
+                        print(hexlify(titleId) + ': ' + hexlify(decryptedTitleKey))
             raise SystemExit(0)
 
 
