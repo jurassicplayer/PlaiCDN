@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #script is modified from https://github.com/Relys/3DS_Multi_Decryptor/blob/master/to3DS/CDNto3DS/CDNto3DS.py
-#requires PyCrypto to be installed (pip install PyCrypto)
+#requires PyCrypto to be installed ("python3 -m ensurepip" then "pip3 install PyCrypto")
 #requires makerom (https://github.com/profi200/Project_CTR/releases)
 #this is a Python 3 script
 
@@ -58,7 +58,7 @@ def chunk_read(response, outfname, chunk_size=2*1024*1024, report_hook=None):
 ##########
 
 def SystemUsage():
-    print('Usage: PlaiCDN.py <TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin]')
+    print('Usage: python3 PlaiCDN.py <TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin]')
     print('-deckey   : print keys from decTitleKeys.bin')
     print('-check    : checks if title id matches key')
     print('-checkbin : checks titlekeys from decTitleKeys.bin')
