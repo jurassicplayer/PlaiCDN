@@ -1,4 +1,4 @@
-Usage: PlaiCDN.py \<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]\> or [-deckey] or [-checkbin]    
+Usage: \<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]\> or [-deckey] or [-checkbin]    
 \-deckey   : print keys from decTitleKeys.bin    
 \-check    : checks if title id matches key    
 \-checkbin : checks titlekeys from decTitleKeys.bin    
@@ -8,4 +8,8 @@ Usage: PlaiCDN.py \<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]\
 \-no3ds    : don't build 3DS file    
 \-nocia    : don't build CIA file    
 
-Requires [makerom](https://github.com/profi200/Project_CTR/releases) to be in the directory, [Python 3](https://www.python.org/downloads/) to be installed, and [PyCrypto](https://pypi.python.org/pypi/pycrypto) to be installed.
+Requires [makerom](https://github.com/profi200/Project_CTR/releases) to be in the directory
+
+If you are using the script itself instead of the compiled .exe, you will also need [Python 3](https://www.python.org/downloads/) to be installed, and [PyCrypto](https://pypi.python.org/pypi/pycrypto) to be installed.
+
+The executable was created with the command `pyinstaller --onefile PlaiCDN.py`

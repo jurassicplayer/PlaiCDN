@@ -2,3 +2,6 @@
 *.bin
 *.cfa
 *.dec
+dist/
+build/
+PlaiCDN.spec
