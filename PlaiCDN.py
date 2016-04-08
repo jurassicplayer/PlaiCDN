@@ -265,7 +265,7 @@ for i in range(contentCount):
         checkTempOut = decryptor.decrypt(checkTempPerm)[0x100:0x104]
 
         if 'NCCH' not in checkTempOut.decode('UTF-8', 'ignore'):
-            print('\nERROR: Got \'' + checkTempOut + '\'; expected \'NCCH\' - Invalid Titlekey')
+            print('\nERROR: Decryption failed; invalid titlekey')
             raise SystemExit(0)
 
         print('Titlekey successfully verified to match title ID ' + titleid)
