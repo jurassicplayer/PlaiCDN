@@ -264,7 +264,7 @@ for i in range(contentCount):
         # check for magic ('NCCH') at offset 0x100 length 0x104 of the decrypted content
         checkTempOut = decryptor.decrypt(checkTempPerm)[0x100:0x104]
 
-        if 'NCCH' not in checkTempOut.decode('UTF-8'):
+        if 'NCCH' not in checkTempOut.decode('UTF-8', 'ignore'):
             print('\nERROR: Got \'' + checkTempOut + '\'; expected \'NCCH\' - Invalid Titlekey')
             raise SystemExit(0)
 
@@ -308,7 +308,7 @@ for i in range(contentCount):
             print('got hash: ' + sha256file)
             raise SystemExit(0)
         fh.seek(0x100)
-        if (fh.read(4)).decode('UTF-8') != 'NCCH':
+        if (fh.read(4)).decode('UTF-8', 'ignore') != 'NCCH':
             makecia = 0
             make3ds = 0
             fh.seek(0x60)
