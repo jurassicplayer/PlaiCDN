@@ -1,5 +1,5 @@
-Use [3dsdb.com](http://www.3dsdb.com/) to find title ids; you're on your own for the keys.
-
+Use [3dsdb.com](http://www.3dsdb.com/) to find title ids; you're on your own for the keys.    
+Requires [makerom](https://github.com/profi200/Project_CTR/releases) to be in the directory    
 ___
 
 Usage: `<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin]`    
@@ -25,8 +25,6 @@ Examples (note this is not the correct key as that is copyrighted):
   + this would check all keys in `decTitleKeys.bin` to see if they match their titles
 
 ___
-
-Requires [makerom](https://github.com/profi200/Project_CTR/releases) to be in the directory
 
 If you are using the script itself instead of the compiled .exe, you will also need [Python 3](https://www.python.org/downloads/) to be installed, and [PyCrypto](https://pypi.python.org/pypi/pycrypto) to be installed.
 
