@@ -1,4 +1,4 @@
-Use 3dsdb.com to find title ids; you're on your own for the keys.
+Use [3dsdb.com](http://www.3dsdb.com/) to find title ids; you're on your own for the keys.
 
 ___
 
