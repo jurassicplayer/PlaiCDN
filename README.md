@@ -1,3 +1,7 @@
+Use 3dsdb.com to find title ids; you're on your own for the keys.
+
+___
+
 Usage: `<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin]`    
 \-deckey   : print keys from decTitleKeys.bin    
 \-check    : checks if title id matches key    
