@@ -19,6 +19,25 @@ from binascii import hexlify, unhexlify
 from hashlib import sha256
 from Crypto.Cipher import AES
 
+##########From http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python/377028#377028
+def which(program):
+    import os
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
+
 def mkdir_p(path):
     try:
         os.makedirs(path)
@@ -193,10 +212,17 @@ if bytes('\x00\x01\x00\x04', 'UTF-8') not in tmd[:4]:
 if titleid[:8] != '00040000':
     make3ds = 0
 
-# Check for Mac OS X
-makerom_command = 'makerom'
-if platform.system() == 'Darwin':
-    makerom_command = './makerom'
+# Finds makerom
+if which('makerom') == None:
+    if os.path.isfile('makerom') and os.access('makerom', os.X_OK) and platform.system == 'Windows':
+        makerom_command = 'makerom'
+    if os.path.isfile('makerom') and os.access('makerom', os.X_OK) and platform.system != 'Windows':
+        makerom_command = './makerom'
+    else:
+        print('Could not find makerom!')
+        raise SystemExit(0)
+else:
+    makerom_command = which('makerom')
 
 # Set Proper CommonKey ID
 if unpack('>H', tmd[0x18e:0x190])[0] & 0x10 == 0x10:

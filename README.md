@@ -13,3 +13,5 @@ Requires [makerom](https://github.com/profi200/Project_CTR/releases) to be in th
 If you are using the script itself instead of the compiled .exe, you will also need [Python 3](https://www.python.org/downloads/) to be installed, and [PyCrypto](https://pypi.python.org/pypi/pycrypto) to be installed.
 
 The executable was created with the command `pyinstaller --onefile PlaiCDN.py`
+
+This project was forked from [CDNto3DS](https://github.com/Relys/3DS_Multi_Decryptor/blob/master/to3DS/CDNto3DS/CDNto3DS.py) and includes expanded features and capabilities, including use on non windows platforms thanks to its reliance on PyCrypto instead of aescbc.
