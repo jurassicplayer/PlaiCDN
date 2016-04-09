@@ -385,11 +385,11 @@ dot3ds_command_array.remove('')
 
 if makecia == 1:
     print('\nBuilding ' + titleid + '.cia...')
-    call(dotcia_command_array, stdout=DEVNULL, stderr=STDOUT)
+    call(dotcia_command_array, stderr=STDOUT)
 
 if make3ds == 1:
     print('\nBuilding ' + titleid + '.3ds...')
-    call(dot3ds_command_array, stdout=DEVNULL, stderr=STDOUT)
+    call(dot3ds_command_array, stderr=STDOUT)
 
 os.remove('rom.rsf')
 
