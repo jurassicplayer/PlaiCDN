@@ -129,7 +129,7 @@ for i in range(len(sys.argv)):
                 decryptedTitleKey = fh.read(16)
 
                 baseurl = 'http://nus.cdn.c.shop.nintendowifi.net/ccs/download/' + (hexlify(titleId)).decode()
-                if (hexlify(titleId)).decode()[:8] != '00040000' or (hexlify(titleId)).decode()[:8] != '0004008c':
+                if (hexlify(titleId)).decode()[:8] != '00040000' and (hexlify(titleId)).decode()[:8] != '0004008c':
                     continue
                 else:
                     try:
