@@ -1,5 +1,5 @@
 Use [3dsdb.com](http://www.3dsdb.com/) to find title ids; you're on your own for the keys.    
-**Requires [makerom](https://github.com/profi200/Project_CTR/releases) to be in the directory**    
+**Requires [makerom](https://github.com/profi200/Project_CTR/releases) to be in the directory or on the PATH**    
 ___
 
 Usage: `<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin]`    
