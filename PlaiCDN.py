@@ -10,7 +10,9 @@ import platform
 import struct
 import errno
 import sys
+import shlex
 import urllib.request, urllib.error, urllib.parse
+from subprocess import DEVNULL, STDOUT, call, check_call
 from struct import unpack, pack
 from subprocess import call
 from binascii import hexlify, unhexlify
@@ -192,31 +194,26 @@ if titleid[:8] != '00040000':
     make3ds = 0
 
 # Check for Mac OS X
+makerom_command = 'makerom'
 if platform.system() == 'Darwin':
-    mCiaCmd = './makerom -f cia -rsf rom.rsf -o ' + titleid + '.cia'
-    mRomCmd = './makerom -f cci -rsf rom.rsf -nomodtid -o ' + titleid + '.3ds'
-else:
-    mCiaCmd = 'makerom -f cia -rsf rom.rsf -o ' + titleid + '.cia'
-    mRomCmd = 'makerom -f cci -rsf rom.rsf -nomodtid -o ' + titleid + '.3ds'
+    makerom_command = './makerom'
 
 # Set Proper CommonKey ID
 if unpack('>H', tmd[0x18e:0x190])[0] & 0x10 == 0x10:
-    mCiaCmd = mCiaCmd + ' -ckeyid 1'
+    ckeyid = 1
 else:
-    mCiaCmd = mCiaCmd + ' -ckeyid 0'
+    ckeyid = 0
 
 # Set Proper Version
 version = unpack('>H', tmd[0x1dc:0x1de])[0]
-mCiaCmd = mCiaCmd + ' -major ' + str((version & 0xfc00) >> 10) + ' -minor ' + str((version & 0x3f0) >> 4) + ' -micro ' + str(version & 0xF)
 
 # Set Save Size
 saveSize = (unpack('<I', tmd[0x19a:0x19e])[0])/1024
-mCiaCmd = mCiaCmd + ' -DSaveSize=' + str(saveSize)
-mRomCmd = mRomCmd + ' -DSaveSize=' + str(saveSize)
 
 # If DLC Set DLC flag
+dlcflag = ''
 if titleid[:8] == '0004008c':
-    mCiaCmd = mCiaCmd + ' -dlc'
+    dlcflag = '-dlc'
 
 contentCount = unpack('>H', tmd[0x206:0x208])[0]
 
@@ -228,6 +225,8 @@ if contentCount > 8:
 if noDownload == 1:
     noDownloadFile = open('CDNLinks.txt', 'a')
     noDownloadFile.write('TitleId %s\n'%(titleid))
+
+command_cID = []
 
 # Download Contents
 fSize = 16*1024
@@ -302,13 +301,14 @@ for i in range(contentCount):
 
         while fh.tell() != fhSize:
             hash.update(fh.read(0x1000000))
-            print('checking hash: ' + format(float(fh.tell()*100)/fhSize,'.1f') + '% done\r', end=' ')
+            print('Checking Hash: ' + format(float(fh.tell()*100)/fhSize,'.1f') + '% done\r', end=' ')
 
         sha256file = hash.hexdigest()
         if sha256file != (hexlify(cHASH)).decode():
             print('hash mismatched, Decryption likely failed, wrong key or file modified?')
             print('got hash: ' + sha256file)
             raise SystemExit(0)
+        print('Hash verified successfully.')
         fh.seek(0x100)
         if (fh.read(4)).decode('UTF-8', 'ignore') != 'NCCH':
             makecia = 0
@@ -323,41 +323,44 @@ for i in range(contentCount):
         fSize += fh.tell()
 
     print('\n')
-    mCiaCmd = mCiaCmd + ' -i ' + outfname + '.dec' + ':0x' + cIDX + ':0x' + cID
-    mRomCmd = mRomCmd + ' -i ' + outfname + '.dec' + ':0x' + cIDX + ':0x' + cID
+    command_cID = command_cID + ['-i', outfname + '.dec' + ':0x' + cIDX + ':0x' + cID]
 
 if noDownload == 1:
     noDownloadFile.close()
     print('URL links appended to CDNLinks.txt')
     raise SystemExit(0)
 
-print('\n')
-print('The NCCH on eShop games is encrypted and cannot be used')
-print('without decryption on a 3DS. To fix this you should copy')
-print('all .dec files in the Title ID folder to \'/D9Game/\'')
-print('on your SD card, then use the following option in Decrypt9:')
-print('\n')
-print('\'Game Decryptor Options\' > \'NCCH/NCSD Decryptor\'')
-print('\n')
-print('Once you have decrypted the files, copy the .dec files from')
-print('\'/D9Game/\' back into the Title ID folder, overwriting them.')
-print('\n')
-input('Press Enter once you have done this...')
+#this is _probably_ not needed in most situations
+#print('\n')
+#print('The NCCH on eShop games is encrypted and cannot be used')
+#print('without decryption on a 3DS. To fix this you should copy')
+#print('all .dec files in the Title ID folder to \'/D9Game/\'')
+#print('on your SD card, then use the following option in Decrypt9:')
+#print('\n')
+#print('\'Game Decryptor Options\' > \'NCCH/NCSD Decryptor\'')
+#print('\n')
+#print('Once you have decrypted the files, copy the .dec files from')
+#print('\'/D9Game/\' back into the Title ID folder, overwriting them.')
+#print('\n')
+#input('Press Enter once you have done this...')
 
 # Create RSF File
 romrsf = 'Option:\n  MediaFootPadding: true\n  EnableCrypt: false\nSystemControlInfo:\n  SaveDataSize: $(SaveSize)K'
 with open('rom.rsf', 'wb') as fh:
     fh.write(romrsf.encode())
 
+dotcia_command_array = ([makerom_command, '-f', 'cia', '-rsf', 'rom.rsf', '-o', titleid + '.cia', '-ckeyid', str(ckeyid), '-major', str((version & 0xfc00) >> 10), '-minor', str((version & 0x3f0) >> 4), '-micro', str(version & 0xF), '-DSaveSize=' + str(saveSize), str(dlcflag)] + command_cID)
+dot3ds_command_array = ([makerom_command, '-f', 'cci', '-rsf', 'rom.rsf', '-nomodtid', '-o', titleid + '.3ds', '-ckeyid', str(ckeyid), '-major', str((version & 0xfc00) >> 10), '-minor', str((version & 0x3f0) >> 4), '-micro', str(version & 0xF), '-DSaveSize=' + str(saveSize), str(dlcflag)] + command_cID)
+dotcia_command_array.remove('')
+dot3ds_command_array.remove('')
+
 if makecia == 1:
     print('\nBuilding ' + titleid + '.cia...')
-    #print mCiaCmd
-    os.system(mCiaCmd)
+    call(dotcia_command_array, stdout=DEVNULL, stderr=STDOUT)
 
 if make3ds == 1:
     print('\nBuilding ' + titleid + '.3ds...')
-    #print mRomCmd
-    os.system(mRomCmd)
+    call(dot3ds_command_array, stdout=DEVNULL, stderr=STDOUT)
 
 os.remove('rom.rsf')
 
