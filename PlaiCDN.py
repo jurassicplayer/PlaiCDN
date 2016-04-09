@@ -212,9 +212,10 @@ if bytes('\x00\x01\x00\x04', 'UTF-8') not in tmd[:4]:
 if titleid[:8] != '00040000':
     make3ds = 0
 
+print(which('makerom'))
 # Finds makerom
 if which('makerom') == None:
-    if os.path.isfile('makerom') and os.access('makerom', os.X_OK) and platform.system == 'Windows':
+    if os.path.isfile('makerom.exe') and os.access('makerom.exe', os.X_OK) and platform.system == 'Windows':
         makerom_command = 'makerom'
     if os.path.isfile('makerom') and os.access('makerom', os.X_OK) and platform.system != 'Windows':
         makerom_command = './makerom'
@@ -222,7 +223,7 @@ if which('makerom') == None:
         print('Could not find makerom!')
         raise SystemExit(0)
 else:
-    makerom_command = which('makerom')
+    makerom_command = which('makerom') + '.exe'
 
 # Set Proper CommonKey ID
 if unpack('>H', tmd[0x18e:0x190])[0] & 0x10 == 0x10:
