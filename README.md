@@ -8,6 +8,8 @@ Usage: `<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-decke
 \-no3ds    : don't build 3DS file    
 \-nocia    : don't build CIA file    
 
+___
+
 Examples (note this is not the correct key as that is copyrighted):    
 + `PlaiCDN.exe 000400000014F200 abb5c65ecaba9bcd29d1bfdf3f64c285`
   + this would create a .CIA and .3DS file for "Animal Crossing: Happy Home Designer"
@@ -17,6 +19,8 @@ Examples (note this is not the correct key as that is copyrighted):
   + this would create a .CIA file after redownloading previously downloaded encrypted files for "Animal Crossing: Happy Home Designer"
 + `PlaiCDN.exe -checkbin`
   + this would check all keys in `decTitleKeys.bin` to see if they match their titles
+
+___
 
 Requires [makerom](https://github.com/profi200/Project_CTR/releases) to be in the directory
 
