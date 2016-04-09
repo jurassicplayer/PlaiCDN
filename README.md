@@ -1,4 +1,4 @@
-Usage: \<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]\> or [-deckey] or [-checkbin]    
+Usage: `<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin]`    
 \-deckey   : print keys from decTitleKeys.bin    
 \-check    : checks if title id matches key    
 \-checkbin : checks titlekeys from decTitleKeys.bin    
@@ -7,6 +7,16 @@ Usage: \<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]\> or [-deck
 \-redec    : re-attempt content decryption    
 \-no3ds    : don't build 3DS file    
 \-nocia    : don't build CIA file    
+
+Examples (note this is not the correct key as that is copyrighted):    
++ `PlaiCDN.exe 000400000014F200 abb5c65ecaba9bcd29d1bfdf3f64c285`
+  + this would create a .CIA and .3DS file for "Animal Crossing: Happy Home Designer"
++ `PlaiCDN.exe 000400000014F200 abb5c65ecaba9bcd29d1bfdf3f64c285 -check`
+  + this would check if the key (abb5c65ecaba9bcd29d1bfdf3f64c285) for "Animal Crossing: Happy Home Designer" is correct (it's not)
++ `PlaiCDN.exe 000400000014F200 abb5c65ecaba9bcd29d1bfdf3f64c285 -redown -no3ds`
+  + this would create a .CIA file after redownloading previously downloaded encrypted files for "Animal Crossing: Happy Home Designer"
++ `PlaiCDN.exe -checkbin`
+  + this would check all keys in `decTitleKeys.bin` to see if they match their titles
 
 Requires [makerom](https://github.com/profi200/Project_CTR/releases) to be in the directory
 
