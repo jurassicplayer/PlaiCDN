@@ -123,6 +123,8 @@ def getTitleInfo(titleId):
         return('-TWL System Application-', '---', '-------')
     if ((hexlify(titleId)).decode()).upper()[:8] == '0004800F':
         return('-TWL System Data Archive-', '---', '-------')
+    if ((hexlify(titleId)).decode()).upper()[:8] == '00040002':
+        return('-Game Demo-', '---', '-------')
     if ((hexlify(titleId)).decode()).upper()[:8] == '0004008C':
         return('-Addon DLC-', '---', '-------')
 
@@ -148,27 +150,65 @@ def getTitleInfo(titleId):
 
     # samurai handles metadata actions, including getting a title's info
     # URL regions are by country instead of geographical regions... for some reason
-    samuraiurl_USA = 'https://samurai.ctr.shop.nintendo.net/samurai/ws/US/title/'
-    samuraiurl_JPN = 'https://samurai.ctr.shop.nintendo.net/samurai/ws/JP/title/'
-    samuraiurl_EUR = 'https://samurai.ctr.shop.nintendo.net/samurai/ws/GB/title/'
+    samuraiurl = 'https://samurai.ctr.shop.nintendo.net/samurai/ws/'
 
-    # nested try loop to figure out which region the title is from; there is no way to do this other than try them all
+    # nested try loop to figure out which region the title is from; there is no easy way to do this other than try them all
     try:
-        titleRequest = urllib.request.Request(samuraiurl_USA + ns_uid)
+        country_code = 'JP'
+        titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
         titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
-        region = 'USA'
+        region = 'JPN'
+        try:
+            country_code = 'US'
+            titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
+            titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
+            region = 'WLD'
+        except urllib.error.URLError as e:
+            pass
     except urllib.error.URLError as e:
         try:
-            titleRequest = urllib.request.Request(samuraiurl_JPN + ns_uid)
+            country_code = 'US'
+            titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
             titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
-            region = 'JPN'
+            region = 'USA'
         except urllib.error.URLError as e:
             try:
-                titleRequest = urllib.request.Request(samuraiurl_EUR + ns_uid)
+                country_code = 'GB'
+                titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
                 titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
                 region = 'EUR'
             except urllib.error.URLError as e:
-                raise
+                try:
+                    country_code = 'DE'
+                    titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
+                    titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
+                    region = 'EUR'
+                except urllib.error.URLError as e:
+                    try:
+                        country_code = 'FR'
+                        titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
+                        titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
+                        region = 'EUR'
+                    except urllib.error.URLError as e:
+                        try:
+                            country_code = 'ES'
+                            titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
+                            titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
+                            region = 'EUR'
+                        except urllib.error.URLError as e:
+                            try:
+                                country_code = 'NL'
+                                titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
+                                titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
+                                region = 'EUR'
+                            except urllib.error.URLError as e:
+                                try:
+                                    country_code = 'IT'
+                                    titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
+                                    titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
+                                    region = 'EUR'
+                                except urllib.error.URLError as e:
+                                    raise
 
     # get title's name from the returned XML from the URL
     xmlResponse = minidom.parseString((titleResponse.read()).decode('UTF-8'))
@@ -378,15 +418,15 @@ for i in range(contentCount):
             print('ERROR: Possibly wrong container?\n')
             continue
 
-        try:
-            ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(unhexlify(titleid))
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
-            print('Could not retrieve CDN data!')
-            ret_region = '---'
-            ret_title_name_stripped = '---Unknown---'
-            ret_product_code = '---Unknown---'
+        #try:
+        ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(unhexlify(titleid))
+        #except (KeyboardInterrupt, SystemExit):
+        #    raise
+        #except:
+        #    print('Could not retrieve CDN data!')
+        #    ret_region = '---'
+        #    ret_title_name_stripped = '---Unknown---'
+        #    ret_product_code = '---Unknown---'
 
         # set IV to offset 0xf0 length 0x10 of ciphertext; thanks to yellows8 for the offset
         checkTempPerm = checkTemp.read()
