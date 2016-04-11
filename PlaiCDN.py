@@ -418,15 +418,15 @@ for i in range(contentCount):
             print('ERROR: Possibly wrong container?\n')
             continue
 
-        #try:
-        ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(unhexlify(titleid))
-        #except (KeyboardInterrupt, SystemExit):
-        #    raise
-        #except:
-        #    print('Could not retrieve CDN data!')
-        #    ret_region = '---'
-        #    ret_title_name_stripped = '---Unknown---'
-        #    ret_product_code = '---Unknown---'
+        try:
+            ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(unhexlify(titleid))
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            print('Could not retrieve CDN data!')
+            ret_region = '---'
+            ret_title_name_stripped = '---Unknown---'
+            ret_product_code = '---Unknown---'
 
         # set IV to offset 0xf0 length 0x10 of ciphertext; thanks to yellows8 for the offset
         checkTempPerm = checkTemp.read()
