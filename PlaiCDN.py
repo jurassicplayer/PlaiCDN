@@ -103,6 +103,29 @@ def SystemUsage():
     raise SystemExit(0)
 
 def getTitleInfo(titleId):
+    if ((hexlify(titleId)).decode()).upper()[:8] == '00040010':
+        return('-System Application-', '---', '-------')
+    if ((hexlify(titleId)).decode()).upper()[:8] == '0004001B':
+        return('-System Data Archive-', '---', '-------')
+    if ((hexlify(titleId)).decode()).upper()[:8] == '000400DB':
+        return('-System Data Archive-', '---', '-------')
+    if ((hexlify(titleId)).decode()).upper()[:8] == '0004009B':
+        return('-System Data Archive-', '---', '-------')
+    if ((hexlify(titleId)).decode()).upper()[:8] == '00040030':
+        return('-System Applet-', '---', '-------')
+    if ((hexlify(titleId)).decode()).upper()[:8] == '00040130':
+        return('-System Module-', '---', '-------')
+    if ((hexlify(titleId)).decode()).upper()[:8] == '00040138':
+        return('-System Firmware-', '---', '-------')
+    if ((hexlify(titleId)).decode()).upper()[:8] == '00040001':
+        return('-Download Play Title-', '---', '-------')
+    if ((hexlify(titleId)).decode()).upper()[:8] == '00048005':
+        return('-TWL System Application-', '---', '-------')
+    if ((hexlify(titleId)).decode()).upper()[:8] == '0004800F':
+        return('-TWL System Data Archive-', '---', '-------')
+    if ((hexlify(titleId)).decode()).upper()[:8] == '0004008C':
+        return('-Addon DLC-', '---', '-------')
+
     # create new SSL context to load decrypted CLCert-A off directory, key and cert are in PEM format
     # see https://github.com/SciresM/ccrypt
     ctrcontext = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
