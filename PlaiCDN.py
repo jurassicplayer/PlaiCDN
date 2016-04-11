@@ -11,7 +11,9 @@ import struct
 import errno
 import sys
 import shlex
+import ssl
 import urllib.request, urllib.error, urllib.parse
+from xml.dom import minidom
 from subprocess import DEVNULL, STDOUT, call, check_call
 from struct import unpack, pack
 from subprocess import call
@@ -100,6 +102,60 @@ def SystemUsage():
     print('-nocia    : don\'t build CIA file')
     raise SystemExit(0)
 
+def getTitleInfo(titleId):
+    # create new SSL context to load decrypted CLCert-A off directory, key and cert are in PEM format
+    # see https://github.com/SciresM/ccrypt
+    ctrcontext = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctrcontext.load_cert_chain('ctr-common-1-cert.crt', keyfile='ctr-common-1-key.key')
+
+    # ninja handles handles actions that require authentication, in addition to converting title ID to internal NUS content ID
+    ninjurl = 'https://ninja.ctr.shop.nintendo.net/ninja/ws/titles/id_pair'
+
+    # use GET request with parameter "title_id[]=mytitleid" with SSL context to retrieve XML response
+    try:
+        shopRequest = urllib.request.Request(ninjurl + '?title_id[]=' + (hexlify(titleId)).decode())
+        shopRequest.get_method = lambda: 'GET'
+        response = urllib.request.urlopen(shopRequest, context=ctrcontext)
+        xmlResponse = minidom.parseString((response.read()).decode('UTF-8'))
+    except urllib.error.URLError as e:
+        raise
+
+    # set ns_uid (the internal content ID) to field from XML
+    ns_uid = xmlResponse.getElementsByTagName('ns_uid')[0].childNodes[0].data
+
+    # samurai handles metadata actions, including getting a title's info
+    # URL regions are by country instead of geographical regions... for some reason
+    samuraiurl_USA = 'https://samurai.ctr.shop.nintendo.net/samurai/ws/US/title/'
+    samuraiurl_JPN = 'https://samurai.ctr.shop.nintendo.net/samurai/ws/JP/title/'
+    samuraiurl_EUR = 'https://samurai.ctr.shop.nintendo.net/samurai/ws/GB/title/'
+
+    # nested try loop to figure out which region the title is from; there is no way to do this other than try them all
+    try:
+        titleRequest = urllib.request.Request(samuraiurl_USA + ns_uid)
+        titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
+        region = 'USA'
+    except urllib.error.URLError as e:
+        try:
+            titleRequest = urllib.request.Request(samuraiurl_JPN + ns_uid)
+            titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
+            region = 'JPN'
+        except urllib.error.URLError as e:
+            try:
+                titleRequest = urllib.request.Request(samuraiurl_EUR + ns_uid)
+                titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
+                region = 'EUR'
+            except urllib.error.URLError as e:
+                raise
+
+    # get title's name from the returned XML from the URL
+    xmlResponse = minidom.parseString((titleResponse.read()).decode('UTF-8'))
+    title_name = xmlResponse.getElementsByTagName('name')[0].childNodes[0].data
+    title_name_stripped = title_name.replace('\n', '')
+
+    product_code = xmlResponse.getElementsByTagName('product_code')[0].childNodes[0].data
+
+    return(title_name_stripped, region, product_code)
+
 #from https://github.com/Relys/3DS_Multi_Decryptor/blob/master/ticket-titlekey_stuff/printKeys.py
 for i in range(len(sys.argv)):
     if sys.argv[i] == '-deckey':
@@ -118,44 +174,59 @@ for i in range(len(sys.argv)):
         with open('decTitleKeys.bin', 'rb') as fh:
             nEntries = os.fstat(fh.fileno()).st_size / 32
             fh.seek(16, os.SEEK_SET)
-            print('This option checks 00040000 (game) and 0004008c (dlc) titles only\n')
+            final_output = []
+            print('\n')
+            # format: Title Name (left aligned) gets 40 characters, Title ID (Right aligned) gets 16, Titlekey (Right aligned) gets 32, and Region (Right aligned) gets 3
+            # anything longer is truncated, anything shorter is padded
+            print("{0:<40} {1:>16} {2:>32} {3:>3}".format('Name', 'Title ID', 'Titlekey', 'Region'))
+            print("-"*100)
             for i in range(int(nEntries)):
                 fh.seek(8, os.SEEK_CUR)
                 titleId = fh.read(8)
                 decryptedTitleKey = fh.read(16)
-
+                # regular CDN URL for downloads off NUS
                 baseurl = 'http://nus.cdn.c.shop.nintendowifi.net/ccs/download/' + (hexlify(titleId)).decode()
-                # if it's not a game or dlc, skip to the next title
-                if (hexlify(titleId)).decode()[:8] != '00040000' and (hexlify(titleId)).decode()[:8] != '0004008c':
+
+                # download TMD and set to object
+                try:
+                    tmd = urllib.request.urlopen(baseurl + '/tmd')
+                except urllib.error.URLError as e:
                     continue
-                else:
+                tmd = tmd.read()
+
+                # try to get info from the CDN, if it fails then set title and region to unknown
+                try:
+                    ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(titleId)
+                except (KeyboardInterrupt, SystemExit):
+                    raise
+                except:
+                    ret_region = '---'
+                    ret_title_name_stripped = '---Unknown---'
+                    ret_product_code = '---Unknown---'
+
+                contentCount = unpack('>H', tmd[0x206:0x208])[0]
+                for i in range(contentCount):
+                    cOffs = 0xB04+(0x30*i)
+                    cID = format(unpack('>I', tmd[cOffs:cOffs+4])[0], '08x')
+                    # use range requests to download bytes 0 through 271, needed 272 instead of 260 because AES-128-CBC encrypts in chunks of 128 bits
                     try:
-                        tmd = urllib.request.urlopen(baseurl + '/tmd')
+                        checkReq = urllib.request.Request('%s/%s'%(baseurl, cID))
+                        checkReq.headers['Range'] = 'bytes=%s-%s' % (0, 271)
+                        checkTemp = urllib.request.urlopen(checkReq)
                     except urllib.error.URLError as e:
                         continue
 
-                    tmd = tmd.read()
-                    contentCount = unpack('>H', tmd[0x206:0x208])[0]
-                    for i in range(contentCount):
-                        cOffs = 0xB04+(0x30*i)
-                        cID = format(unpack('>I', tmd[cOffs:cOffs+4])[0], '08x')
-                        # use range requests to download bytes 0 through 271, needed 272 instead of 260 because AES-128-CBC encrypts in chunks of 128 bits
-                        try:
-                            checkReq = urllib.request.Request('%s/%s'%(baseurl, cID))
-                            checkReq.headers['Range'] = 'bytes=%s-%s' % (0, 271)
-                            checkTemp = urllib.request.urlopen(checkReq)
-                        except urllib.error.URLError as e:
-                            continue
+                # set IV to offset 0xf0 length 0x10 of ciphertext; thanks to yellows8 for the offset
+                checkTempPerm = checkTemp.read()
+                checkIv = checkTempPerm[0xf0:0x100]
+                decryptor = AES.new(decryptedTitleKey, AES.MODE_CBC, checkIv)
 
-                    # set IV to offset 0xf0 length 0x10 of ciphertext; thanks to yellows8 for the offset
-                    checkTempPerm = checkTemp.read()
-                    checkIv = checkTempPerm[0xf0:0x100]
-                    decryptor = AES.new(decryptedTitleKey, AES.MODE_CBC, checkIv)
-
-                    # check for magic ('NCCH') at offset 0x100 length 0x104 of the decrypted content
-                    checkTempOut = decryptor.decrypt(checkTempPerm)[0x100:0x104]
-                    if 'NCCH' in checkTempOut.decode('UTF-8', 'ignore'):
-                        print(((hexlify(titleId).decode()) + ': ' + (hexlify(decryptedTitleKey)).decode()))
+                # check for magic ('NCCH') at offset 0x100 length 0x104 of the decrypted content
+                checkTempOut = decryptor.decrypt(checkTempPerm)[0x100:0x104]
+                if 'NCCH' in checkTempOut.decode('UTF-8', 'ignore'):
+                    # format: Title Name (left aligned) gets 40 characters, Title ID (Right aligned) gets 16, Titlekey (Right aligned) gets 32, and Region (Right aligned) gets 3
+                    # anything longer is truncated, anything shorter is padded
+                    print("{0:<40.40} {1:>16} {2:>32} {3:>3}".format(ret_title_name_stripped, (hexlify(titleId).decode()).strip(), ((hexlify(decryptedTitleKey)).decode()).strip(), ret_region))
             raise SystemExit(0)
 
 #if args for deckeys or checkbin weren't used above, remaining functions require 3 args minimum
@@ -270,7 +341,7 @@ for i in range(contentCount):
     outfname = titleid + '/' + cID + '.dec'
 
     if checkKey == 1:
-        print('Downloading and decrypting the first 272 bytes of ' + cID + ' for key check')
+        print('\nDownloading and decrypting the first 272 bytes of ' + cID + ' for key check\n')
         # use range requests to download bytes 0 through 271, needed 272 instead of 260 because AES-128-CBC encrypts in chunks of 128 bits
         try:
             checkReq = urllib.request.Request('%s/%s'%(baseurl, cID))
@@ -280,6 +351,16 @@ for i in range(contentCount):
             print('ERROR: Possibly wrong container?\n')
             continue
 
+        try:
+            ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(unhexlify(titleid))
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            print('Could not retrieve CDN data!')
+            ret_region = '---'
+            ret_title_name_stripped = '---Unknown---'
+            ret_product_code = '---Unknown---'
+
         # set IV to offset 0xf0 length 0x10 of ciphertext; thanks to yellows8 for the offset
         checkTempPerm = checkTemp.read()
         decryptor = AES.new(unhexlify(titlekey), AES.MODE_CBC, checkTempPerm[0xf0:0x100])
@@ -287,11 +368,15 @@ for i in range(contentCount):
         # check for magic ('NCCH') at offset 0x100 length 0x104 of the decrypted content
         checkTempOut = decryptor.decrypt(checkTempPerm)[0x100:0x104]
 
+        print('Title Name: ' + ret_title_name_stripped)
+        print('Region: ' + ret_region)
+        print('Product Code: ' + ret_product_code)
+
         if 'NCCH' not in checkTempOut.decode('UTF-8', 'ignore'):
-            print('\nERROR: Decryption failed; invalid titlekey')
+            print('\nERROR: Decryption failed; invalid titlekey?')
             raise SystemExit(0)
 
-        print('Titlekey successfully verified to match title ID ' + titleid)
+        print('\nTitlekey successfully verified to match title ID ' + titleid)
         raise SystemExit(0)
 
     # if the content location does not exist, redown is set, or the size is incorrect redownload
