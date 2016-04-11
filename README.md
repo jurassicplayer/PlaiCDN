@@ -5,10 +5,11 @@ This script now pulls title metadata (like the title's name and region) directly
 **Requires [makerom](https://github.com/profi200/Project_CTR/releases), [ctr-common-1.crt](https://mega.nz/#!Rp9CDZSY!iDopFefUj2oZERWYHm3BDbEKDhmD363YVX24TCkwp50) ([mirror](https://drive.google.com/open?id=0BzPfvjeuhqoDcnhNcjNMWlV6MFk)), and [ctr-common-1.key](https://mega.nz/#!ZxdD1DKK!eksGHKw4psuouBN1y_yeh2x3eIvXyK1IHHMfs-vTJvs) ([mirror](https://drive.google.com/open?id=0BzPfvjeuhqoDd01oNUw4N0RpNFk)) to be in the directory**    
 ___
 
-Usage: `<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin]`    
+Usage: `<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin -checkall]`    
 \-deckey   : print keys from decTitleKeys.bin    
 \-check    : checks if title id matches key    
-\-checkbin : checks titlekeys from decTitleKeys.bin    
+\-checkbin : checks titlekeys from decTitleKeys.bin (games only)    
+\-checkall : use with -checkbin, checks for all titles    
 \-redown   : redownload content    
 \-nodown   : don't download content, just print links    
 \-redec    : re-attempt content decryption    

@@ -92,10 +92,11 @@ def chunk_read(response, outfname, intitlekey, first_iv, chunk_size=0x200000, re
     fh.close()
 
 def SystemUsage():
-    print('Usage: python3 PlaiCDN.py <TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin]')
+    print('Usage: python3 PlaiCDN.py <TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin -checkall]')
     print('-deckey   : print keys from decTitleKeys.bin')
     print('-check    : checks if title id matches key')
-    print('-checkbin : checks titlekeys from decTitleKeys.bin')
+    print('-checkbin : checks titlekeys from decTitleKeys.bin (games only)')
+    print('-checkall : use with -checkbin, checks for all titles')
     print('-redown   : redownload content')
     print('-redec    : re-attempt content decryption')
     print('-no3ds    : don\'t build 3DS file')
@@ -162,7 +163,7 @@ def getTitleInfo(titleId):
             country_code = 'US'
             titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
             titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
-            region = 'WLD'
+            region = 'ALL'
         except urllib.error.URLError as e:
             pass
     except urllib.error.URLError as e:
@@ -213,8 +214,10 @@ def getTitleInfo(titleId):
     # get title's name from the returned XML from the URL
     xmlResponse = minidom.parseString((titleResponse.read()).decode('UTF-8'))
     title_name = xmlResponse.getElementsByTagName('name')[0].childNodes[0].data
-    title_name_stripped = title_name.replace('\n', '')
+    title_name_stripped = title_name.replace('\n', ' ')
 
+    # some windows unicode character bullshit
+    # see https://github.com/Plailect/PlaiCDN/issues/7
     if 'Windows' in platform.system():
         title_name_stripped = bytes(title_name_stripped, 'utf-8')
         title_name_stripped = title_name_stripped.decode('utf-8').encode('cp850','replace').decode('cp850')
@@ -238,6 +241,11 @@ for i in range(len(sys.argv)):
 
 for i in range(len(sys.argv)):
     if sys.argv[i] == '-checkbin':
+        if (not os.path.isfile('ctr-common-1.crt')) or (not os.path.isfile('ctr-common-1.crt')):
+            print('\nCould not find certificate files, all NUS connections will fail!')
+        checkAll = 0
+        for i in range(len(sys.argv)):
+            if sys.argv[i] == '-checkall': checkAll = 1
         with open('decTitleKeys.bin', 'rb') as fh:
             nEntries = os.fstat(fh.fileno()).st_size / 32
             fh.seek(16, os.SEEK_SET)
@@ -253,6 +261,9 @@ for i in range(len(sys.argv)):
                 decryptedTitleKey = fh.read(16)
                 # regular CDN URL for downloads off NUS
                 baseurl = 'http://nus.cdn.c.shop.nintendowifi.net/ccs/download/' + (hexlify(titleId)).decode()
+
+                if checkAll == 0 and ((hexlify(titleId)).decode()).upper()[:8] != '00040000':
+                    continue
 
                 # download TMD and set to object
                 try:
@@ -408,6 +419,8 @@ for i in range(contentCount):
     outfname = titleid + '/' + cID + '.dec'
 
     if checkKey == 1:
+        if (not os.path.isfile('ctr-common-1.crt')) or (not os.path.isfile('ctr-common-1.crt')):
+            print('\nCould not find certificate files, all NUS connections will fail!')
         print('\nDownloading and decrypting the first 272 bytes of ' + cID + ' for key check\n')
         # use range requests to download bytes 0 through 271, needed 272 instead of 260 because AES-128-CBC encrypts in chunks of 128 bits
         try:
