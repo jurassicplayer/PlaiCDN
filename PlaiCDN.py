@@ -139,7 +139,7 @@ def getTitleInfo(titleId):
         shopRequest = urllib.request.Request(ninjurl + '?title_id[]=' + (hexlify(titleId)).decode())
         shopRequest.get_method = lambda: 'GET'
         response = urllib.request.urlopen(shopRequest, context=ctrcontext)
-        xmlResponse = minidom.parseString((response.read()).decode('UTF-8'))
+        xmlResponse = minidom.parseString((response.read()).decode('UTF-8', 'replace'))
     except urllib.error.URLError as e:
         raise
 
@@ -174,6 +174,10 @@ def getTitleInfo(titleId):
     xmlResponse = minidom.parseString((titleResponse.read()).decode('UTF-8'))
     title_name = xmlResponse.getElementsByTagName('name')[0].childNodes[0].data
     title_name_stripped = title_name.replace('\n', '')
+
+    if 'Windows' in platform.system():
+        title_name_stripped = bytes(title_name_stripped, 'utf-8')
+        title_name_stripped = title_name_stripped.decode('utf-8').encode('cp850','replace').decode('cp850')
 
     product_code = xmlResponse.getElementsByTagName('product_code')[0].childNodes[0].data
 
@@ -374,15 +378,15 @@ for i in range(contentCount):
             print('ERROR: Possibly wrong container?\n')
             continue
 
-        try:
-            ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(unhexlify(titleid))
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
-            print('Could not retrieve CDN data!')
-            ret_region = '---'
-            ret_title_name_stripped = '---Unknown---'
-            ret_product_code = '---Unknown---'
+        #try:
+        ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(unhexlify(titleid))
+        #except (KeyboardInterrupt, SystemExit):
+        #    raise
+        #except:
+        #    print('Could not retrieve CDN data!')
+        #    ret_region = '---'
+        #    ret_title_name_stripped = '---Unknown---'
+        #    ret_product_code = '---Unknown---'
 
         # set IV to offset 0xf0 length 0x10 of ciphertext; thanks to yellows8 for the offset
         checkTempPerm = checkTemp.read()
