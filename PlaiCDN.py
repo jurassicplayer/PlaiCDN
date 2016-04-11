@@ -106,7 +106,7 @@ def getTitleInfo(titleId):
     # create new SSL context to load decrypted CLCert-A off directory, key and cert are in PEM format
     # see https://github.com/SciresM/ccrypt
     ctrcontext = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    ctrcontext.load_cert_chain('ctr-common-1-cert.crt', keyfile='ctr-common-1-key.key')
+    ctrcontext.load_cert_chain('ctr-common-1.crt', keyfile='ctr-common-1.key')
 
     # ninja handles handles actions that require authentication, in addition to converting title ID to internal NUS content ID
     ninjurl = 'https://ninja.ctr.shop.nintendo.net/ninja/ws/titles/id_pair'
