@@ -12,7 +12,6 @@ Usage: `<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-decke
 \-checkall : use with -checkbin, checks for all titles    
 \-redown   : redownload content    
 \-nodown   : don't download content, just print links    
-\-redec    : re-attempt content decryption    
 \-no3ds    : don't build 3DS file    
 \-nocia    : don't build CIA file    
 
