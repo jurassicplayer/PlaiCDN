@@ -357,7 +357,7 @@ for i in range(content_count):
             checkTemp = urllib.request.urlopen(checkReq)
         except urllib.error.URLError as e:
             print('ERROR: Possibly wrong container?\n')
-            continue
+            raise SystemExit(0)
         try:
             ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(unhexlify(title_id))
         except (KeyboardInterrupt, SystemExit):
