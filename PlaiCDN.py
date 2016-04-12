@@ -238,14 +238,14 @@ for i in range(len(sys.argv)):
                 tmd = tmd.read()
 
                 # try to get info from the CDN, if it fails then set title and region to unknown
-                #try:
-                ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(titleId)
-                #except (KeyboardInterrupt, SystemExit):
-                #    raise
-                #except:
-                #    ret_region = '---'
-                #    ret_title_name_stripped = '---Unknown---'
-                #    ret_product_code = '---Unknown---'
+                try:
+                    ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(titleId)
+                except (KeyboardInterrupt, SystemExit):
+                    raise
+                except:
+                    ret_region = '---'
+                    ret_title_name_stripped = '---Unknown---'
+                    ret_product_code = '---Unknown---'
 
                 contentCount = unpack('>H', tmd[0x206:0x208])[0]
                 for i in range(contentCount):
