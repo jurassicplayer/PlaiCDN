@@ -152,64 +152,29 @@ def getTitleInfo(titleId):
     # samurai handles metadata actions, including getting a title's info
     # URL regions are by country instead of geographical regions... for some reason
     samuraiurl = 'https://samurai.ctr.shop.nintendo.net/samurai/ws/'
+    regionarray = ['JP', 'US', 'GB', 'DE', 'FR', 'ES', 'NL', 'IT']
+    eurarray = ['GB', 'DE', 'FR', 'ES', 'NL', 'IT']
+    region = ''
 
-    # nested try loop to figure out which region the title is from; there is no easy way to do this other than try them all
-    try:
-        country_code = 'JP'
-        titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
-        titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
-        region = 'JPN'
+    # try loop to figure out which region the title is from; there is no easy way to do this other than try them all
+    for i in range(len(regionarray)):
         try:
-            country_code = 'US'
+            country_code = regionarray[i]
             titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
             titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
-            region = 'ALL'
         except urllib.error.URLError as e:
             pass
-    except urllib.error.URLError as e:
-        try:
-            country_code = 'US'
-            titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
-            titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
-            region = 'USA'
-        except urllib.error.URLError as e:
-            try:
-                country_code = 'GB'
-                titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
-                titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
-                region = 'EUR'
-            except urllib.error.URLError as e:
-                try:
-                    country_code = 'DE'
-                    titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
-                    titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
-                    region = 'EUR'
-                except urllib.error.URLError as e:
-                    try:
-                        country_code = 'FR'
-                        titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
-                        titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
-                        region = 'EUR'
-                    except urllib.error.URLError as e:
-                        try:
-                            country_code = 'ES'
-                            titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
-                            titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
-                            region = 'EUR'
-                        except urllib.error.URLError as e:
-                            try:
-                                country_code = 'NL'
-                                titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
-                                titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
-                                region = 'EUR'
-                            except urllib.error.URLError as e:
-                                try:
-                                    country_code = 'IT'
-                                    titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
-                                    titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
-                                    region = 'EUR'
-                                except urllib.error.URLError as e:
-                                    raise
+        else:
+            if ('JP') in country_code:
+                region = region + 'JPN'
+            if ('US') in country_code:
+                region = region + 'USA'
+            if country_code in eurarray:
+                region = region + 'EUR'
+    if region == '':
+        raise
+    if len(region) > 3:
+        region = 'ALL'
 
     # get title's name from the returned XML from the URL
     xmlResponse = minidom.parseString((titleResponse.read()).decode('UTF-8'))
@@ -273,14 +238,14 @@ for i in range(len(sys.argv)):
                 tmd = tmd.read()
 
                 # try to get info from the CDN, if it fails then set title and region to unknown
-                try:
-                    ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(titleId)
-                except (KeyboardInterrupt, SystemExit):
-                    raise
-                except:
-                    ret_region = '---'
-                    ret_title_name_stripped = '---Unknown---'
-                    ret_product_code = '---Unknown---'
+                #try:
+                ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(titleId)
+                #except (KeyboardInterrupt, SystemExit):
+                #    raise
+                #except:
+                #    ret_region = '---'
+                #    ret_title_name_stripped = '---Unknown---'
+                #    ret_product_code = '---Unknown---'
 
                 contentCount = unpack('>H', tmd[0x206:0x208])[0]
                 for i in range(contentCount):

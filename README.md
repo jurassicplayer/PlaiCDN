@@ -26,7 +26,7 @@ Examples (note this is not the correct key):
 + `PlaiCDN.exe 000400000014F200 abb5c65ecaba9bcd29d1bfdf3f64c285 -redown -no3ds`
   + this would create a .CIA file after redownloading previously downloaded encrypted files for "Animal Crossing: Happy Home Designer"
 + `PlaiCDN.exe -checkbin`
-  + this would check all keys in `decTitleKeys.bin` to see if they match their titles, in addition to outputting metadata on them pulled from the CDN
+  + this would check all game keys in `decTitleKeys.bin` to see if they match their titles, in addition to outputting metadata on them pulled from the CDN
 
 ___
 
