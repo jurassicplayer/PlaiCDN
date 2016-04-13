@@ -1,4 +1,4 @@
-You're on your own for the keys.
+You're on your own for the keys ([but I've heard of this site that has a database of them...](http://lmgtfy.com/?q=http%3A%2F%2F3ds.nfshost.com)).
 
 This script now pulls title metadata directly off the CDN by CLCert-A.
 
