@@ -501,14 +501,15 @@ for i in range(content_count):
             ret_title_name_stripped, ret_region, ret_product_code, ret_publisher, ret_crypto_seed, ret_curr_version, ret_title_size = getTitleInfo((unhexlify(title_id)))
         except (KeyboardInterrupt, SystemExit):
             pass
-        with open(outsname, 'wb') as seeddb_handler:
-            seed_count = "1".rjust(2, "0").ljust(32, '0')
-            # Title_id is reversed in seeddb.bin
-            seed_title = "".join(reversed([title_id[i:i+2] for i in range(0, len(title_id), 2)]))
-            seed_crypto = ret_crypto_seed
-            seed = unhexlify((seed_count+seed_title+seed_crypto).ljust(96, '0'))
-            seeddb_handler.write(seed)
-            seeddb_handler.close()
+        if ret_crypto_seed != '':
+            with open(outsname, 'wb') as seeddb_handler:
+                seed_count = "1".rjust(2, "0").ljust(32, '0')
+                # Title_id is reversed in seeddb.bin
+                seed_title = "".join(reversed([title_id[i:i+2] for i in range(0, len(title_id), 2)]))
+                seed_crypto = ret_crypto_seed
+                seed = unhexlify((seed_count+seed_title+seed_crypto).ljust(96, '0'))
+                seeddb_handler.write(seed)
+                seeddb_handler.close()
     # if the content location does not exist, redown is set, or the size is incorrect redownload
     if os.path.exists(outfname) == 0 or force_download == 1 or os.path.getsize(outfname) != unpack('>Q', tmd_var[cOffs+8:cOffs+16])[0]:
         response = urllib.request.urlopen(base_url + '/' + cID)
