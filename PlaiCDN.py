@@ -172,7 +172,7 @@ def getTitleInfo(title_id):
     xmlResponse = minidom.parseString((ecResponse.read()).decode('UTF-8'))
     curr_version = xmlResponse.getElementsByTagName('title_version')[0].childNodes[0].data
     title_size = '{:.5}'.format(int(xmlResponse.getElementsByTagName('content_size')[0].childNodes[0].data) / 1000000)
-$
+
     try:
         crypto_seed = xmlResponse.getElementsByTagName('external_seed')[0].childNodes[0].data
     except:
