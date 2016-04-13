@@ -39,3 +39,9 @@ If pycrypto gives you issues installing, try using [this](https://github.com/sfb
 The executable was created with the command `pyinstaller --onefile PlaiCDN.py`
 
 This project is a replacement for [CDNto3DS](https://github.com/Relys/3DS_Multi_Decryptor/blob/master/to3DS/CDNto3DS/CDNto3DS.py) and includes expanded features and capabilities, including use on non windows platforms thanks to its reliance on PyCrypto instead of aescbc.
+
+___
+
+Example Output:
+
+![screenshot](http://i.imgur.com/MuT7FX6.png)
