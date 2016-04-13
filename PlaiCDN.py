@@ -130,7 +130,7 @@ def getTitleInfo(title_id):
     # samurai handles metadata actions, including getting a title's info
     # URL regions are by country instead of geographical regions... for some reason
     samuraiurl = 'https://samurai.ctr.shop.nintendo.net/samurai/ws/'
-    regionarray = ['JP', 'US', 'GB', 'DE', 'FR', 'ES', 'NL', 'IT']
+    regionarray = ['JP', 'US', 'GB', 'DE', 'FR', 'ES', 'NL', 'IT', 'HK', 'TW', 'KR']
     eurarray = ['GB', 'DE', 'FR', 'ES', 'NL', 'IT']
     region = ''
 
@@ -149,6 +149,12 @@ def getTitleInfo(title_id):
                 region = region + 'JPN'
             if ('US') in country_code:
                 region = region + 'USA'
+            if ('TW') in country_code:
+                region = region + 'TWN'
+            if ('HK') in country_code:
+                region = region + 'HKG'
+            if ('KR') in country_code:
+                region = region + 'KOR'
             if country_code in eurarray:
                 region = region + 'EUR'
     if region == '':
@@ -166,7 +172,7 @@ def getTitleInfo(title_id):
     xmlResponse = minidom.parseString((ecResponse.read()).decode('UTF-8'))
     curr_version = xmlResponse.getElementsByTagName('title_version')[0].childNodes[0].data
     title_size = '{:.5}'.format(int(xmlResponse.getElementsByTagName('content_size')[0].childNodes[0].data) / 1000000)
-
+$
     try:
         crypto_seed = xmlResponse.getElementsByTagName('external_seed')[0].childNodes[0].data
     except:
