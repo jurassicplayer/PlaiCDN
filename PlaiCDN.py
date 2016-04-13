@@ -10,6 +10,7 @@ from struct import pack, unpack
 from binascii import hexlify, unhexlify
 from Crypto.Cipher import AES
 from hashlib import sha256
+from imp import reload
 import platform
 import os
 import struct
@@ -172,10 +173,9 @@ def getTitleInfo(title_id):
         crypto_seed = ''
 
     # some windows unicode character bullshit
-    # see https://github.com/Plailect/PlaiCDN/issues/7
     if 'Windows' in platform.system():
-        title_name_stripped = title_name_stripped.encode('cp850', errors='replace').decode('cp850')
-        publisher = publisher.encode('UTF-8', errors='ignore').decode('UTF-8')
+        title_name_stripped = ''.join([i if ord(i) < 128 else ' ' for i in title_name_stripped])
+        publisher = ''.join([i if ord(i) < 128 else ' ' for i in publisher])
 
     return(title_name_stripped, region, product_code, publisher, crypto_seed, curr_version, title_size)
 
