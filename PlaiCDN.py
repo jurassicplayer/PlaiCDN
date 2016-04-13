@@ -350,10 +350,27 @@ for i in range(len(sys.argv)):
     elif sys.argv[i] == '-nocia': make_cia = 0
     elif sys.argv[i] == '-check': checkKey = 1
 
-if len(title_key) != 32 or len(title_id) != 16:
+if (len(title_key) != 32 and not os.path.isfile('decTitleKeys.bin')) or len(title_id) != 16:
     print('Invalid arguments')
     raise SystemExit(0)
 
+# pull title key from decTitleKeys.bin if available
+if len(title_key) != 32 and os.path.isfile('decTitleKeys.bin'):
+    decryptedKeys = {}
+    with open('decTitleKeys.bin', 'rb') as file_handler:
+        nEntries = os.fstat(file_handler.fileno()).st_size / 32
+        file_handler.seek(16, os.SEEK_SET)
+        for i in range(int(nEntries)):
+            file_handler.seek(8, os.SEEK_CUR)
+            tmp_title_id = file_handler.read(8)
+            decryptedTitleKey = file_handler.read(16)
+            decryptedKeys.update({(hexlify(tmp_title_id)).decode() : (hexlify(decryptedTitleKey)).decode()})
+    try:
+        title_key = decryptedKeys[title_id]
+    except:
+        print('Title key not available in decTitleKeys.bin')
+        raise SystemExit(0)
+    
 # set CDN default URL
 base_url = 'http://ccs.cdn.c.shop.nintendowifi.net/ccs/download/' + title_id
 
