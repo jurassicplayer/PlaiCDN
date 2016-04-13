@@ -267,8 +267,12 @@ for i in range(len(sys.argv)):
         if (not os.path.isfile('ctr-common-1.crt')) or (not os.path.isfile('ctr-common-1.crt')):
             print('\nCould not find certificate files, all secure connections will fail!')
         checkAll = 0
+        gen_seed = 0
         for i in range(len(sys.argv)):
             if sys.argv[i] == '-checkall': checkAll = 1
+            elif sys.argv[i] == '-seeddb':
+                gen_seed = 1
+                crypto_db = {}
         with open('decTitleKeys.bin', 'rb') as file_handler:
             nEntries = os.fstat(file_handler.fileno()).st_size / 32
             file_handler.seek(16, os.SEEK_SET)
@@ -328,6 +332,24 @@ for i in range(len(sys.argv)):
                     # format: Title Name (left aligned) gets 40 characters, Title ID (Right aligned) gets 16, Titlekey (Right aligned) gets 32, and Region (Right aligned) gets 3
                     # anything longer is truncated, anything shorter is padded
                     print("{0:<40.40} {1:>16} {2:>32} {3:>3}".format(ret_title_name_stripped, (hexlify(title_id).decode()).strip(), ((hexlify(decryptedTitleKey)).decode()).strip(), ret_region))
+                    # Add crypto seed to crypto database if available
+                    if gen_seed == 1 and ret_crypto_seed != '':
+                        crypto_db.update({(hexlify(title_id).decode()).strip(): ret_crypto_seed})
+            # Generate seeddb.bin from crypto seed database (crypto_db)
+            if gen_seed == 1 and crypto_db:
+                outsname = 'seeddb.bin'
+                with open(outsname, 'wb') as seeddb_handler:
+                    seed_count = hex(len(crypto_db)).split('x')[1].zfill(32)
+                    seed_count = "".join(reversed([seed_count[i:i+2] for i in range(0, len(seed_count), 2)]))
+                    seeddb_handler.write(unhexlify(seed_count))
+                    for title_id in crypto_db:
+                        # Title_id is reversed in seeddb.bin
+                        seed_title = "".join(reversed([title_id[i:i+2] for i in range(0, len(title_id), 2)]))
+                        seed_crypto = crypto_db[title_id]
+                        seed_padding = "".zfill(16)
+                        seed = unhexlify(seed_title+seed_crypto+seed_padding)
+                        seeddb_handler.write(seed)
+                    seeddb_handler.close()
             raise SystemExit(0)
 
 #if args for deckeys or checkbin weren't used above, remaining functions require 3 args minimum
@@ -341,6 +363,7 @@ force_download = 0
 make_3ds = 1
 make_cia = 1
 checkKey = 0
+gen_seed = 0
 checkTempOut = None
 
 # check args
@@ -349,6 +372,7 @@ for i in range(len(sys.argv)):
     elif sys.argv[i] == '-no3ds': make_3ds = 0
     elif sys.argv[i] == '-nocia': make_cia = 0
     elif sys.argv[i] == '-check': checkKey = 1
+    elif sys.argv[i] == '-seed': gen_seed = 1
 
 if (len(title_key) != 32 and not os.path.isfile('decTitleKeys.bin')) or len(title_id) != 16:
     print('Invalid arguments')
@@ -493,9 +517,11 @@ for i in range(content_count):
             raise SystemExit(0)
         print('\nTitlekey successfully verified to match title ID ' + title_id)
         raise SystemExit(0)
-    # if the content location does not exist, redown is set, or the size is incorrect for crypto seed
-    outsname = title_id + '/seeddb.bin'
-    if os.path.exists(outsname) == 0 or force_download == 1 or os.path.getsize(outsname) != 48:
+    # Check for crypto seed and create seeddb.bin if available.
+    if gen_seed == 1:
+        outsname = title_id + '/seeddb.bin'
+        if (not os.path.isfile('ctr-common-1.crt')) or (not os.path.isfile('ctr-common-1.crt')):
+            print('\nCould not find certificate files, all secure connections will fail!\n')
         try:
             print("Checking for crypto seed (seeddb.bin will be generated if required).")
             ret_title_name_stripped, ret_region, ret_product_code, ret_publisher, ret_crypto_seed, ret_curr_version, ret_title_size = getTitleInfo((unhexlify(title_id)))
