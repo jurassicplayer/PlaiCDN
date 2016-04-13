@@ -174,11 +174,8 @@ def getTitleInfo(title_id):
     # some windows unicode character bullshit
     # see https://github.com/Plailect/PlaiCDN/issues/7
     if 'Windows' in platform.system():
-        title_name_stripped = bytes(title_name_stripped, 'utf-8')
-        title_name_stripped = title_name_stripped.decode('utf-8').encode('cp850','replace').decode('cp850')
-
-        publisher = bytes(publisher, 'utf-8')
-        publisher = publisher.decode('utf-8').encode('cp850','replace').decode('cp850')
+        title_name_stripped = title_name_stripped.encode('cp850', errors='replace').decode('cp850')
+        publisher = publisher.encode('UTF-8', errors='ignore').decode('UTF-8')
 
     return(title_name_stripped, region, product_code, publisher, crypto_seed, curr_version, title_size)
 
@@ -291,7 +288,7 @@ for i in range(len(sys.argv)):
                 tmd_var = tmd_var.read()
                 # try to get info from the CDN, if it fails then set title and region to unknown
                 try:
-                    ret_title_name_stripped, ret_region, ret_product_code, ret_publisher, ret_crypto_seed, ret_curr_version, ret_title_size = getTitleInfo((unhexlify(title_id)))
+                    ret_title_name_stripped, ret_region, ret_product_code, ret_publisher, ret_crypto_seed, ret_curr_version, ret_title_size = getTitleInfo(title_id)
                 except (KeyboardInterrupt, SystemExit):
                     raise
                 except:
@@ -303,16 +300,6 @@ for i in range(len(sys.argv)):
                     ret_crypto_seed = ''
                     ret_curr_version = '---'
                     ret_title_size = '---'
-
-                print('Title Name: ' + ret_title_name_stripped)
-                print('Region: ' + ret_region)
-                print('Product Code: ' + ret_product_code)
-                print('Publisher: ' + ret_publisher)
-                print('Current Version: ' + ret_curr_version)
-                print('Title Size: ' + ret_title_size + 'mb')
-                if ret_crypto_seed != '':
-                    print('9.6 Crypto Seed: ' + ret_crypto_seed)
-                print('\n')
 
                 content_count = unpack('>H', tmd_var[0x206:0x208])[0]
                 for i in range(content_count):
