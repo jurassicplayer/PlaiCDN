@@ -81,10 +81,11 @@ def read_chunk(response, outfname, intitle_key, first_iv, chunk_size=0x200000, r
     file_handler.close()
 
 def system_usage():
-    print('Usage: python3 PlaiCDN.py <title_id TitleKey [-redown -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin -checkall]')
+    print('Usage: python3 PlaiCDN.py <title_id title_key [-redown -no3ds -nocia] or [-check]> or <title_id [-info]> or [-deckey] or [-checkbin -checkall]')
+    print('-info     : used with just a title id to retrieve info from CDN')
     print('-deckey   : print keys from decTitleKeys.bin')
     print('-check    : checks if title id matches key')
-    print('-checkbin : checks title_keys from decTitleKeys.bin (games only)')
+    print('-checkbin : checks title keys from decTitleKeys.bin (games only)')
     print('-checkall : use with -checkbin, checks for all titles')
     print('-redown   : redownload content')
     print('-no3ds    : don\'t build 3DS file')
@@ -92,36 +93,27 @@ def system_usage():
     raise SystemExit(0)
 
 def getTitleInfo(title_id):
-    if ((hexlify(title_id)).decode()).upper()[:8] == '00040010':
-        return('-System Application-', '---', '-------')
-    if ((hexlify(title_id)).decode()).upper()[:8] == '0004001B':
-        return('-System Data Archive-', '---', '-------')
-    if ((hexlify(title_id)).decode()).upper()[:8] == '000400DB':
-        return('-System Data Archive-', '---', '-------')
-    if ((hexlify(title_id)).decode()).upper()[:8] == '0004009B':
-        return('-System Data Archive-', '---', '-------')
-    if ((hexlify(title_id)).decode()).upper()[:8] == '00040030':
-        return('-System Applet-', '---', '-------')
-    if ((hexlify(title_id)).decode()).upper()[:8] == '00040130':
-        return('-System Module-', '---', '-------')
-    if ((hexlify(title_id)).decode()).upper()[:8] == '00040138':
-        return('-System Firmware-', '---', '-------')
-    if ((hexlify(title_id)).decode()).upper()[:8] == '00040001':
-        return('-Download Play Title-', '---', '-------')
-    if ((hexlify(title_id)).decode()).upper()[:8] == '00048005':
-        return('-TWL System Application-', '---', '-------')
-    if ((hexlify(title_id)).decode()).upper()[:8] == '0004800F':
-        return('-TWL System Data Archive-', '---', '-------')
-    if ((hexlify(title_id)).decode()).upper()[:8] == '00040002':
-        return('-Game Demo-', '---', '-------')
-    if ((hexlify(title_id)).decode()).upper()[:8] == '0004008C':
-        return('-Addon DLC-', '---', '-------')
+    tid_high = ((hexlify(title_id)).decode()).upper()[:8]
+    tid_index = ['00040010', '0004001B', '000400DB', '0004009B',
+                 '0004009B', '00040138', '00040130', '00040001',
+                 '00048005', '0004800F', '00040002', '0004008C']
+    res_index = ['-System Application-', '-System Data Archive-', '-System Data Archive-', '-System Data Archive-',
+                 '-System Applet-', '-System Module-', '-System Module-', '-System Firmware-',
+                 '-Download Play Title-', '-TWL System Application-', '-TWL System Data Archive-',
+                 '-Game Demo-', '-Addon DLC-']
+    if tid_high in tid_index:
+        return(res_index[tid_index.index(tid_high)], '---', '-------', '------', '', '---', '---')
+        title_name_stripped, region, product_code, publisher, crypto_seed, curr_version, title_size
+
     # create new SSL context to load decrypted CLCert-A off directory, key and cert are in PEM format
     # see https://github.com/SciresM/ccrypt
     ctrcontext = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
     ctrcontext.load_cert_chain('ctr-common-1.crt', keyfile='ctr-common-1.key')
-    # ninja handles handles actions that require authentication, in addition to converting title ID to internal NUS content ID
+
+    # ninja handles handles actions that require authentication, in addition to converting title ID to internal the CDN content ID
     ninjurl = 'https://ninja.ctr.shop.nintendo.net/ninja/ws/titles/id_pair'
+    ecurl = 'https://ninja.ctr.shop.nintendo.net/ninja/ws/'
+
     # use GET request with parameter "title_id[]=mytitle_id" with SSL context to retrieve XML response
     try:
         shopRequest = urllib.request.Request(ninjurl + '?title_id[]=' + (hexlify(title_id)).decode())
@@ -130,20 +122,25 @@ def getTitleInfo(title_id):
         xmlResponse = minidom.parseString((response.read()).decode('UTF-8', 'replace'))
     except urllib.error.URLError as e:
         raise
+
     # set ns_uid (the internal content ID) to field from XML
     ns_uid = xmlResponse.getElementsByTagName('ns_uid')[0].childNodes[0].data
+
     # samurai handles metadata actions, including getting a title's info
     # URL regions are by country instead of geographical regions... for some reason
     samuraiurl = 'https://samurai.ctr.shop.nintendo.net/samurai/ws/'
     regionarray = ['JP', 'US', 'GB', 'DE', 'FR', 'ES', 'NL', 'IT']
     eurarray = ['GB', 'DE', 'FR', 'ES', 'NL', 'IT']
     region = ''
+
     # try loop to figure out which region the title is from; there is no easy way to do this other than try them all
     for i in range(len(regionarray)):
         try:
             country_code = regionarray[i]
             titleRequest = urllib.request.Request(samuraiurl + country_code + '/title/' + ns_uid)
             titleResponse = urllib.request.urlopen(titleRequest, context=ctrcontext)
+            ecRequest = urllib.request.Request(ecurl + country_code + '/title/' + ns_uid + '/ec_info')
+            ecResponse = urllib.request.urlopen(ecRequest, context=ctrcontext)
         except urllib.error.URLError as e:
             pass
         else:
@@ -157,17 +154,33 @@ def getTitleInfo(title_id):
         raise
     if len(region) > 3:
         region = 'ALL'
-    # get title's name from the returned XML from the URL
+
+    # get info from the returned XMs from the URL
     xmlResponse = minidom.parseString((titleResponse.read()).decode('UTF-8'))
     title_name = xmlResponse.getElementsByTagName('name')[0].childNodes[0].data
     title_name_stripped = title_name.replace('\n', ' ')
+    publisher = xmlResponse.getElementsByTagName('name')[2].childNodes[0].data
+    product_code = xmlResponse.getElementsByTagName('product_code')[0].childNodes[0].data
+
+    xmlResponse = minidom.parseString((ecResponse.read()).decode('UTF-8'))
+    curr_version = xmlResponse.getElementsByTagName('title_version')[0].childNodes[0].data
+    title_size = '{:.5}'.format(int(xmlResponse.getElementsByTagName('content_size')[0].childNodes[0].data) / 1000000)
+
+    try:
+        crypto_seed = xmlResponse.getElementsByTagName('external_seed')[0].childNodes[0].data
+    except:
+        crypto_seed = ''
+
     # some windows unicode character bullshit
     # see https://github.com/Plailect/PlaiCDN/issues/7
     if 'Windows' in platform.system():
         title_name_stripped = bytes(title_name_stripped, 'utf-8')
         title_name_stripped = title_name_stripped.decode('utf-8').encode('cp850','replace').decode('cp850')
-    product_code = xmlResponse.getElementsByTagName('product_code')[0].childNodes[0].data
-    return(title_name_stripped, region, product_code)
+
+        publisher = bytes(publisher, 'utf-8')
+        publisher = publisher.decode('utf-8').encode('cp850','replace').decode('cp850')
+
+    return(title_name_stripped, region, product_code, publisher, crypto_seed, curr_version, title_size)
 
 #from https://github.com/Relys/3DS_Multi_Decryptor/blob/master/ticket-title_key_stuff/printKeys.py
 for i in range(len(sys.argv)):
@@ -180,6 +193,70 @@ for i in range(len(sys.argv)):
                 title_id = file_handler.read(8)
                 decryptedTitleKey = file_handler.read(16)
                 print('%s: %s' % ((hexlify(title_id)).decode(), (hexlify(decryptedTitleKey)).decode()))
+        raise SystemExit(0)
+
+for i in range(len(sys.argv)):
+    if sys.argv[i] == '-info':
+        title_id = sys.argv[1]
+        if len(title_id) != 16:
+            print('Invalid arguments')
+            raise SystemExit(0)
+
+        if (not os.path.isfile('ctr-common-1.crt')) or (not os.path.isfile('ctr-common-1.crt')):
+                print('\nCould not find certificate files, all secure connections will fail!\n')
+
+        base_url = 'http://ccs.cdn.c.shop.nintendowifi.net/ccs/download/' + title_id
+        # download tmd_var and set to object
+        try:
+            tmd_var = urllib.request.urlopen(base_url + '/tmd')
+        except urllib.error.URLError as e:
+            print('Could not retrieve tmd; received error: ' + e)
+            continue
+        tmd_var = tmd_var.read()
+
+        content_count = unpack('>H', tmd_var[0x206:0x208])[0]
+        for i in range(content_count):
+            cOffs = 0xB04+(0x30*i)
+            cID = format(unpack('>I', tmd_var[cOffs:cOffs+4])[0], '08x')
+            cIDX = format(unpack('>H', tmd_var[cOffs+4:cOffs+6])[0], '04x')
+            cSIZE = format(unpack('>Q', tmd_var[cOffs+8:cOffs+16])[0], 'd')
+            cHASH = tmd_var[cOffs+16:cOffs+48]
+            # If content count above 8 (not a normal application), don't make 3ds
+            if unpack('>H', tmd_var[cOffs+4:cOffs+6])[0] >= 8:
+                make_3ds = 0
+            print('\n')
+            print('Content ID:    ' + cID)
+            print('Content Index: ' + cIDX)
+            print('Content Size:  ' + cSIZE)
+            print('Content Hash:  ' + (hexlify(cHASH)).decode())
+        try:
+            ret_title_name_stripped, ret_region, ret_product_code, ret_publisher, ret_crypto_seed, ret_curr_version, ret_title_size = getTitleInfo((unhexlify(title_id)))
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            print('\nCould not retrieve CDN data!\n')
+            ret_region = '---'
+            ret_title_name_stripped = '---Unknown---'
+            ret_product_code = '------'
+            ret_publisher = '------'
+            ret_crypto_seed = ''
+            ret_curr_version = '---'
+            ret_title_size = '---'
+
+        print('\n~\n')
+
+        print('Title Name: ' + ret_title_name_stripped)
+        print('Region: ' + ret_region)
+        print('Product Code: ' + ret_product_code)
+        print('Publisher: ' + ret_publisher)
+        print('Current Version: ' + ret_curr_version)
+        if ret_title_size == '---':
+            print('Title Size: ' + ret_title_size)
+        else:
+            print('Title Size: ' + ret_title_size + 'mb')
+        if ret_crypto_seed != '':
+            print('9.6 Crypto Seed: ' + ret_crypto_seed)
+        print('\n')
         raise SystemExit(0)
 
 for i in range(len(sys.argv)):
@@ -202,8 +279,8 @@ for i in range(len(sys.argv)):
                 file_handler.seek(8, os.SEEK_CUR)
                 title_id = file_handler.read(8)
                 decryptedTitleKey = file_handler.read(16)
-                # regular CDN URL for downloads off NUS
-                base_url = 'http://nus.cdn.c.shop.nintendowifi.net/ccs/download/' + (hexlify(title_id)).decode()
+                # regular CDN URL for downloads off the CDN
+                base_url = 'http://ccs.cdn.c.shop.nintendowifi.net/ccs/download/' + (hexlify(title_id)).decode()
                 if checkAll == 0 and ((hexlify(title_id)).decode()).upper()[:8] != '00040000':
                     continue
                 # download tmd_var and set to object
@@ -214,13 +291,29 @@ for i in range(len(sys.argv)):
                 tmd_var = tmd_var.read()
                 # try to get info from the CDN, if it fails then set title and region to unknown
                 try:
-                    ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(title_id)
+                    ret_title_name_stripped, ret_region, ret_product_code, ret_publisher, ret_crypto_seed, ret_curr_version, ret_title_size = getTitleInfo((unhexlify(title_id)))
                 except (KeyboardInterrupt, SystemExit):
                     raise
                 except:
+                    print('\nCould not retrieve CDN data!\n')
                     ret_region = '---'
                     ret_title_name_stripped = '---Unknown---'
-                    ret_product_code = '---Unknown---'
+                    ret_product_code = '------'
+                    ret_publisher = '------'
+                    ret_crypto_seed = ''
+                    ret_curr_version = '---'
+                    ret_title_size = '---'
+
+                print('Title Name: ' + ret_title_name_stripped)
+                print('Region: ' + ret_region)
+                print('Product Code: ' + ret_product_code)
+                print('Publisher: ' + ret_publisher)
+                print('Current Version: ' + ret_curr_version)
+                print('Title Size: ' + ret_title_size + 'mb')
+                if ret_crypto_seed != '':
+                    print('9.6 Crypto Seed: ' + ret_crypto_seed)
+                print('\n')
+
                 content_count = unpack('>H', tmd_var[0x206:0x208])[0]
                 for i in range(content_count):
                     cOffs = 0xB04+(0x30*i)
@@ -269,7 +362,7 @@ if len(title_key) != 32 or len(title_id) != 16:
     raise SystemExit(0)
 
 # set CDN default URL
-base_url = 'http://nus.cdn.c.shop.nintendowifi.net/ccs/download/' + title_id
+base_url = 'http://ccs.cdn.c.shop.nintendowifi.net/ccs/download/' + title_id
 
 # download tmd and set to 'tmd_var' object
 try:
@@ -359,14 +452,18 @@ for i in range(content_count):
             print('ERROR: Possibly wrong container?\n')
             raise SystemExit(0)
         try:
-            ret_title_name_stripped, ret_region, ret_product_code = getTitleInfo(unhexlify(title_id))
+            ret_title_name_stripped, ret_region, ret_product_code, ret_publisher, ret_crypto_seed, ret_curr_version, ret_title_size = getTitleInfo((unhexlify(title_id)))
         except (KeyboardInterrupt, SystemExit):
             raise
         except:
-            print('Could not retrieve CDN data!')
+            print('\nCould not retrieve CDN data!\n')
             ret_region = '---'
             ret_title_name_stripped = '---Unknown---'
-            ret_product_code = '---Unknown---'
+            ret_product_code = '------'
+            ret_publisher = '------'
+            ret_crypto_seed = ''
+            ret_curr_version = '---'
+            ret_title_size = '---'
         # set IV to offset 0xf0 length 0x10 of ciphertext; thanks to yellows8 for the offset
         checkTempPerm = checkTemp.read()
         decryptor = AES.new(unhexlify(title_key), AES.MODE_CBC, checkTempPerm[0xf0:0x100])
@@ -375,6 +472,12 @@ for i in range(content_count):
         print('Title Name: ' + ret_title_name_stripped)
         print('Region: ' + ret_region)
         print('Product Code: ' + ret_product_code)
+        print('Publisher: ' + ret_publisher)
+        print('Current Version: ' + ret_curr_version)
+        print('Title Size: ' + ret_title_size + 'mb')
+        if ret_crypto_seed != '':
+            print('9.6 Crypto Seed: ' + ret_crypto_seed)
+        print('\n')
         if 'NCCH' not in checkTempOut.decode('UTF-8', 'ignore'):
             print('\nERROR: Decryption failed; invalid titlekey?')
             raise SystemExit(0)

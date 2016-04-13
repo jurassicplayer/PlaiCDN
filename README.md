@@ -1,14 +1,15 @@
 You're on your own for the keys.
 
-This script now pulls title metadata (like the title's name and region) directly off the CDN by using the following certs to connect.
+This script now pulls title metadata directly off the CDN by CLCert-A.
 
 **Requires [makerom](https://github.com/profi200/Project_CTR/releases), [ctr-common-1.crt](https://mega.nz/#!Rp9CDZSY!iDopFefUj2oZERWYHm3BDbEKDhmD363YVX24TCkwp50) ([mirror](https://drive.google.com/open?id=0BzPfvjeuhqoDcnhNcjNMWlV6MFk)), and [ctr-common-1.key](https://mega.nz/#!ZxdD1DKK!eksGHKw4psuouBN1y_yeh2x3eIvXyK1IHHMfs-vTJvs) ([mirror](https://drive.google.com/open?id=0BzPfvjeuhqoDd01oNUw4N0RpNFk)) to be in the directory**    
 ___
 
-Usage: `<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-deckey] or [-checkbin -checkall]`    
+Usage: `<title_id title_key [-redown -no3ds -nocia] or [-check]> or <title_id [-info]> or [-deckey] or [-checkbin -checkall]`    
+\-info     : used with just a title id to retrieve info from CDN    
 \-deckey   : print keys from decTitleKeys.bin    
 \-check    : checks if title id matches key    
-\-checkbin : checks titlekeys from decTitleKeys.bin (games only)    
+\-checkbin : checks title keys from decTitleKeys.bin (games only)    
 \-checkall : use with -checkbin, checks for all titles    
 \-redown   : redownload content    
 \-nodown   : don't download content, just print links    
@@ -18,6 +19,8 @@ Usage: `<TitleID TitleKey [-redown -redec -no3ds -nocia] or [-check]> or [-decke
 ___
 
 Examples (note this is not the correct key):    
++ `PlaiCDN.exe 000400000014F200 -info`
+  + this would pull a ton of title metadata off the CDN for "Animal Crossing: Happy Home Designer"
 + `PlaiCDN.exe 000400000014F200 abb5c65ecaba9bcd29d1bfdf3f64c285`
   + this would create a .CIA and .3DS file for "Animal Crossing: Happy Home Designer"
 + `PlaiCDN.exe 000400000014F200 abb5c65ecaba9bcd29d1bfdf3f64c285 -check`
