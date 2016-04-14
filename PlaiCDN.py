@@ -82,36 +82,35 @@ def read_chunk(response, outfname, intitle_key, first_iv, chunk_size=0x200000, r
     file_handler.close()
 
 def system_usage():
-    print('Usage: python3 PlaiCDN.py <title_id title_key [-redown -no3ds -nocia] or [-check]> or <title_id [-info]> or [-deckey] or [-checkbin -checkall]')
-    print('-info     : used with just a title id to retrieve info from CDN')
-    print('-deckey   : print keys from decTitleKeys.bin')
-    print('-check    : checks if title id matches key')
-    print('-fast     : skips retrieving title info, cannot be used with seed/seeddb')
-    print('-checkbin : checks title keys from decTitleKeys.bin (games only)')
-    print('-checkall : use with -checkbin, checks for all titles')
-    print('-seeddb   : use with -checkbin, generate seeddb for title keys in decTitleKeys.bin')
+    print('Usage: PlaiCDN <TitleID TitleKey> <Options> to create your content')
     print('-redown   : redownload content')
-    print('-seed     : generate corresponding seeddb file')
-    print('-nohash   : skips generating and checking hash')
-    print('-nowait   : skips pausing for decryption')
     print('-no3ds    : don\'t build 3DS file')
     print('-nocia    : don\'t build CIA file')
-    print('-nobuild  : don\'t build 3DS or CIA file')
+    print('-nobuild  : don\'t build 3DS or CIA')
+    print('-nohash   : ignore hash checks')
+    print('-nowait   : no crypt message/waiting for input')
+    print('')
+    print('Usage: PlaiCDN <TitleID> -info to display detailed metadata')
+    print('')
+    print('Usage: PlaiCDN <Options> to print or check decTitleKeys.bin keys')
+    print('-deckey   : print keys from decTitleKeys.bin')
+    print('-check    : checks if title id matches key')
+    print('-checkbin : checks titlekeys from decTitleKeys.bin')
+    print('-checkall : check all titlekeys when using -checkbin')
+    print('-fast     : skips name retrieval when using -checkbin, cannot be used with seed/seeddb')
+    print('-seeddb   : generates a single seeddb.bin')
+    print('-seed     : generates game-specific seeddb file')
+    
     raise SystemExit(0)
 
 def getTitleInfo(title_id):
-    fast = 0
-    for i in range(len(sys.argv)):
-        if sys.argv[i] == '-fast': fast = 1
     tid_high = ((hexlify(title_id)).decode()).upper()[:8]
     tid_index = ['00040010', '0004001B', '000400DB', '0004009B',
-                 '0004009B', '00040138', '00040130', '00040030',
-                 '00040001', '00048005', '0004800F', '00040002',
-                 '0004008C']
+                 '00040030', '00040130', '00040138', '00040001',
+                 '00048005', '0004800F', '00040002', '0004008C']
     res_index = ['-System Application-', '-System Data Archive-', '-System Data Archive-', '-System Data Archive-',
-                 '-System Applet-', '-System Module-', '-System Module-', '-System Firmware-',
-                 '-Download Play Title-', '-TWL System Application-', '-TWL System Data Archive-',
-                 '-Game Demo-', '-Addon DLC-']
+                 '-System Applet-', '-System Module-', '-System Firmware-', '-Download Play Title-',
+                 '-TWL System Application-', '-TWL System Data Archive-', '-Game Demo-', '-Addon DLC-']
     if fast == 1 and gen_seed != 1:
         tid_index.extend(['00040000', '0004000E'])
         res_index.extend(['-eShop content-', '-eShop content Update-'])
@@ -197,6 +196,49 @@ def getTitleInfo(title_id):
         publisher = ''.join([i if ord(i) < 128 else ' ' for i in publisher])
 
     return(title_name_stripped, region, product_code, publisher, crypto_seed, curr_version, title_size)
+    
+#=========================================================================================================
+# Seeddb implementation
+class crypto_handler:
+    def __init__(self):
+        self.crypto_db = {}
+    def add_seed(self, title_id, title_key):
+        self.crypto_db.update({title_id: title_key})
+    def gen_seeddb(self):
+        if self.crypto_db:
+            if '-seeddb' in sys.argv:
+                self.write_seed()
+            if '-seed' in sys.argv:
+                for title_id in self.crypto_db:
+                    self.write_seed(title_id)
+    def write_seed(self, title_id=None):
+        # Providing title_id makes a title specific seeddb
+        if title_id:
+            pmkdir(title_id)
+            outsname = title_id+'/seeddb.bin'
+            seed_db = {title_id: self.crypto_db[title_id]}
+        else:
+            outsname = 'seeddb.bin'
+            seed_db = self.crypto_db
+        with open(outsname, 'wb') as seeddb_handler:
+            seed_count = hex(len(seed_db)).split('x')[1].zfill(32)
+            seed_count = "".join(reversed([seed_count[i:i+2] for i in range(0, len(seed_count), 2)]))
+            seeddb_handler.write(unhexlify(seed_count))
+            for title_id in seed_db:
+                # Title_id is reversed in seeddb.bin
+                seed_title = "".join(reversed([title_id[i:i+2] for i in range(0, len(title_id), 2)]))
+                seed_crypto = seed_db[title_id]
+                seed_padding = "".zfill(16)
+                seed = unhexlify(seed_title+seed_crypto+seed_padding)
+                seeddb_handler.write(seed)
+            seeddb_handler.close()
+gen_seed = 0
+fast = 0
+for i in range(len(sys.argv)):
+    if sys.argv[i] in ['-seed', '-seeddb']: gen_seed = 1
+    elif sys.argv[i] == '-fast': fast = 1
+crypto_db = crypto_handler()
+#=========================================================================================================
 
 #from https://github.com/Relys/3DS_Multi_Decryptor/blob/master/ticket-title_key_stuff/printKeys.py
 for i in range(len(sys.argv)):
@@ -272,6 +314,11 @@ for i in range(len(sys.argv)):
             print('Title Size: ' + ret_title_size + 'mb')
         if ret_crypto_seed != '':
             print('9.6 Crypto Seed: ' + ret_crypto_seed)
+            # Add crypto seed to crypto database
+            crypto_db.add_seed(title_id, ret_crypto_seed)
+        # Generate seeddb.bin from crypto seed database
+        if gen_seed == 1:
+            crypto_db.gen_seeddb()
         print('\n')
         raise SystemExit(0)
 
@@ -280,12 +327,8 @@ for i in range(len(sys.argv)):
         if (not os.path.isfile('ctr-common-1.crt')) or (not os.path.isfile('ctr-common-1.crt')):
             print('\nCould not find certificate files, all secure connections will fail!')
         checkAll = 0
-        gen_seed = 0
         for i in range(len(sys.argv)):
             if sys.argv[i] == '-checkall': checkAll = 1
-            elif sys.argv[i] == '-seeddb':
-                gen_seed = 1
-                crypto_db = {}
         with open('decTitleKeys.bin', 'rb') as file_handler:
             nEntries = os.fstat(file_handler.fileno()).st_size / 32
             file_handler.seek(16, os.SEEK_SET)
@@ -293,8 +336,8 @@ for i in range(len(sys.argv)):
             print('\n')
             # format: Title Name (left aligned) gets 40 characters, Title ID (Right aligned) gets 16, Titlekey (Right aligned) gets 32, and Region (Right aligned) gets 3
             # anything longer is truncated, anything shorter is padded
-            print("{0:<40} {1:>16} {2:>32} {3:>3}".format('Name', 'Title ID', 'Titlekey', 'Region'))
-            print("-"*100)
+            print("{0:<60} {1:>16} {2:>32} {3:>3}".format('Name', 'Title ID', 'Titlekey', 'Region'))
+            print("-"*120)
             for i in range(int(nEntries)):
                 file_handler.seek(8, os.SEEK_CUR)
                 title_id = file_handler.read(8)
@@ -346,24 +389,12 @@ for i in range(len(sys.argv)):
                     # format: Title Name (left aligned) gets 40 characters, Title ID (Right aligned) gets 16, Titlekey (Right aligned) gets 32, and Region (Right aligned) gets 3
                     # anything longer is truncated, anything shorter is padded
                     print("{0:<40.40} {1:>16} {2:>32} {3:>3}".format(ret_title_name_stripped, (hexlify(title_id).decode()).strip(), ((hexlify(decryptedTitleKey)).decode()).strip(), ret_region))
-                    # Add crypto seed to crypto database if available
-                    if gen_seed == 1 and ret_crypto_seed != '':
-                        crypto_db.update({(hexlify(title_id).decode()).strip(): ret_crypto_seed})
-            # Generate seeddb.bin from crypto seed database (crypto_db)
-            if gen_seed == 1 and crypto_db:
-                outsname = 'seeddb.bin'
-                with open(outsname, 'wb') as seeddb_handler:
-                    seed_count = hex(len(crypto_db)).split('x')[1].zfill(32)
-                    seed_count = "".join(reversed([seed_count[i:i+2] for i in range(0, len(seed_count), 2)]))
-                    seeddb_handler.write(unhexlify(seed_count))
-                    for title_id in crypto_db:
-                        # Title_id is reversed in seeddb.bin
-                        seed_title = "".join(reversed([title_id[i:i+2] for i in range(0, len(title_id), 2)]))
-                        seed_crypto = crypto_db[title_id]
-                        seed_padding = "".zfill(16)
-                        seed = unhexlify(seed_title+seed_crypto+seed_padding)
-                        seeddb_handler.write(seed)
-                    seeddb_handler.close()
+                    # Add crypto seed to crypto database
+                    if ret_crypto_seed != '':
+                        crypto_db.add_seed((hexlify(title_id).decode()).strip(), ret_crypto_seed)
+            # Generate seeddb.bin from crypto seed database
+            if gen_seed == 1:
+                crypto_db.gen_seeddb()
             raise SystemExit(0)
 
 #if args for deckeys or checkbin weren't used above, remaining functions require 3 args minimum
@@ -379,7 +410,6 @@ make_cia = 1
 checkKey = 0
 no_hash = 0
 no_wait = 0
-gen_seed = 0
 checkTempOut = None
 
 # check args
@@ -390,10 +420,7 @@ for i in range(len(sys.argv)):
     elif sys.argv[i] == '-check': checkKey = 1
     elif sys.argv[i] == '-nowait': no_wait = 1
     elif sys.argv[i] == '-nohash': no_hash = no_wait = 1
-    elif sys.argv[i] == '-nobuild': 
-        make_cia = make_3ds = 0
-        no_wait = 1
-    elif sys.argv[i] == '-seed': gen_seed = 1
+    elif sys.argv[i] == '-nobuild': make_cia = make_3ds = 0, no_wait = 1
 
 if (len(title_key) != 32 and not os.path.isfile('decTitleKeys.bin')) or len(title_id) != 16:
     print('Invalid arguments')
@@ -494,7 +521,7 @@ for i in range(content_count):
     print('Content Hash:  ' + (hexlify(cHASH)).decode())
     # set output location to a folder named for title id and contentid.dec as the file
     outfname = title_id + '/' + cID + '.dec'
-    if checkKey == 1:
+    if checkKey == 1 or gen_seed == 1:
         if (not os.path.isfile('ctr-common-1.crt')) or (not os.path.isfile('ctr-common-1.crt')):
             print('\nCould not find certificate files, all secure connections will fail!')
         print('\nDownloading and decrypting the first 272 bytes of ' + cID + ' for key check\n')
@@ -532,31 +559,17 @@ for i in range(content_count):
         print('Title Size: ' + ret_title_size + 'mb')
         if ret_crypto_seed != '':
             print('9.6 Crypto Seed: ' + ret_crypto_seed)
+            # Add crypto seed to crypto database
+            crypto_db.add_seed(title_id, ret_crypto_seed)
         print('\n')
         if 'NCCH' not in checkTempOut.decode('UTF-8', 'ignore'):
             print('\nERROR: Decryption failed; invalid titlekey?')
             raise SystemExit(0)
         print('\nTitlekey successfully verified to match title ID ' + title_id)
-        raise SystemExit(0)
-    # Check for crypto seed and create seeddb.bin if available.
-    if gen_seed == 1:
-        outsname = title_id + '/seeddb.bin'
-        if (not os.path.isfile('ctr-common-1.crt')) or (not os.path.isfile('ctr-common-1.crt')):
-            print('\nCould not find certificate files, all secure connections will fail!\n')
-        try:
-            print("Checking for crypto seed (seeddb.bin will be generated if required).")
-            ret_title_name_stripped, ret_region, ret_product_code, ret_publisher, ret_crypto_seed, ret_curr_version, ret_title_size = getTitleInfo((unhexlify(title_id)))
-        except (KeyboardInterrupt, SystemExit):
-            pass
-        if ret_crypto_seed != '':
-            with open(outsname, 'wb') as seeddb_handler:
-                seed_count = "1".rjust(2, "0").ljust(32, '0')
-                # Title_id is reversed in seeddb.bin
-                seed_title = "".join(reversed([title_id[i:i+2] for i in range(0, len(title_id), 2)]))
-                seed_crypto = ret_crypto_seed
-                seed = unhexlify((seed_count+seed_title+seed_crypto).ljust(96, '0'))
-                seeddb_handler.write(seed)
-                seeddb_handler.close()
+        if gen_seed == 1:
+            crypto_db.gen_seeddb()
+        if checkKey == 1:
+            raise SystemExit(0)
     # if the content location does not exist, redown is set, or the size is incorrect redownload
     if os.path.exists(outfname) == 0 or force_download == 1 or os.path.getsize(outfname) != unpack('>Q', tmd_var[cOffs+8:cOffs+16])[0]:
         response = urllib.request.urlopen(base_url + '/' + cID)
@@ -596,6 +609,7 @@ for i in range(content_count):
     print('\n')
     command_cID = command_cID + ['-i', outfname + ':0x' + cIDX + ':0x' + cID]
 
+# FUCKING FIX THIS
 if no_wait == 0:
     print('\n')
     print('The NCCH on eShop games is encrypted and cannot be used')
