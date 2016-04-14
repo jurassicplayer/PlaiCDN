@@ -640,11 +640,11 @@ if '' in dot3ds_command_array:
 
 if make_cia == 1:
     print('\nBuilding ' + title_id + '.cia...')
-    call(dotcia_command_array, stderr=STDOUT, shell=True)
+    call(dotcia_command_array, stderr=STDOUT)
 
 if make_3ds == 1:
     print('\nBuilding ' + title_id + '.3ds...')
-    call(dot3ds_command_array, stderr=STDOUT, shell=True)
+    call(dot3ds_command_array, stderr=STDOUT)
 
 if os.path.isfile('rom.rsf'):
     os.remove('rom.rsf')
