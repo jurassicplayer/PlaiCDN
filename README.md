@@ -5,16 +5,22 @@ This script now pulls title metadata directly off the CDN by CLCert-A.
 **Requires [makerom](https://github.com/profi200/Project_CTR/releases), [ctr-common-1.crt](https://mega.nz/#!Rp9CDZSY!iDopFefUj2oZERWYHm3BDbEKDhmD363YVX24TCkwp50) ([mirror](https://drive.google.com/open?id=0BzPfvjeuhqoDcnhNcjNMWlV6MFk)), and [ctr-common-1.key](https://mega.nz/#!ZxdD1DKK!eksGHKw4psuouBN1y_yeh2x3eIvXyK1IHHMfs-vTJvs) ([mirror](https://drive.google.com/open?id=0BzPfvjeuhqoDd01oNUw4N0RpNFk)) to be in the directory**    
 ___
 
-Usage: `<title_id title_key [-redown -no3ds -nocia] or [-check]> or <title_id [-info]> or [-deckey] or [-checkbin -checkall]`    
-\-info     : used with just a title id to retrieve info from CDN    
-\-deckey   : print keys from decTitleKeys.bin    
-\-check    : checks if title id matches key    
-\-checkbin : checks title keys from decTitleKeys.bin (games only)    
-\-checkall : use with -checkbin, checks for all titles    
+Usage: PlaiCDN \<TitleID TitleKey\> \<Options\> to create your content    
 \-redown   : redownload content    
-\-nodown   : don't download content, just print links    
 \-no3ds    : don't build 3DS file    
 \-nocia    : don't build CIA file    
+\-nobuild  : don't build 3DS or CIA    
+\-nohash   : ignore hash checks    
+\-nowait   : no crypt message/waiting for input    
+
+Usage: PlaiCDN \<TitleID\> -info to display detailed metadata    
+
+Usage: PlaiCDN \<Options\> to print or check decTitleKeys.bin keys    
+\-deckey   : print keys from decTitleKeys.bin    
+\-check    : checks if title id matches key    
+\-checkbin : checks titlekeys from decTitleKeys.bin    
+\-checkall : check all titlekeys when using -checkbin    
+\-fast     : skips name retrieval when using -checkbin    
 
 ___
 
