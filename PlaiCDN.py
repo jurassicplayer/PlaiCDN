@@ -88,7 +88,9 @@ def system_usage():
     print('-check    : checks if title id matches key')
     print('-checkbin : checks title keys from decTitleKeys.bin (games only)')
     print('-checkall : use with -checkbin, checks for all titles')
+    print('-seeddb   : use with -checkbin, generate seeddb for title keys in decTitleKeys.bin')
     print('-redown   : redownload content')
+    print('-seed     : generate corresponding seeddb file')
     print('-no3ds    : don\'t build 3DS file')
     print('-nocia    : don\'t build CIA file')
     raise SystemExit(0)
@@ -213,7 +215,7 @@ for i in range(len(sys.argv)):
         try:
             tmd_var = urllib.request.urlopen(base_url + '/tmd')
         except urllib.error.URLError as e:
-            print('Could not retrieve tmd; received error: ' + e)
+            print('Could not retrieve tmd; received error: ' + str(e))
             continue
         tmd_var = tmd_var.read()
 
