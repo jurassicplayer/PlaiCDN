@@ -86,24 +86,35 @@ def system_usage():
     print('-info     : used with just a title id to retrieve info from CDN')
     print('-deckey   : print keys from decTitleKeys.bin')
     print('-check    : checks if title id matches key')
+    print('-fast     : skips retrieving title info, cannot be used with seed/seeddb')
     print('-checkbin : checks title keys from decTitleKeys.bin (games only)')
     print('-checkall : use with -checkbin, checks for all titles')
     print('-seeddb   : use with -checkbin, generate seeddb for title keys in decTitleKeys.bin')
     print('-redown   : redownload content')
     print('-seed     : generate corresponding seeddb file')
+    print('-nohash   : skips generating and checking hash')
+    print('-nowait   : skips pausing for decryption')
     print('-no3ds    : don\'t build 3DS file')
     print('-nocia    : don\'t build CIA file')
+    print('-nobuild  : don\'t build 3DS or CIA file')
     raise SystemExit(0)
 
 def getTitleInfo(title_id):
+    fast = 0
+    for i in range(len(sys.argv)):
+        if sys.argv[i] == '-fast': fast = 1
     tid_high = ((hexlify(title_id)).decode()).upper()[:8]
     tid_index = ['00040010', '0004001B', '000400DB', '0004009B',
-                 '0004009B', '00040138', '00040130', '00040001',
-                 '00048005', '0004800F', '00040002', '0004008C']
+                 '0004009B', '00040138', '00040130', '00040030',
+                 '00040001', '00048005', '0004800F', '00040002',
+                 '0004008C']
     res_index = ['-System Application-', '-System Data Archive-', '-System Data Archive-', '-System Data Archive-',
                  '-System Applet-', '-System Module-', '-System Module-', '-System Firmware-',
                  '-Download Play Title-', '-TWL System Application-', '-TWL System Data Archive-',
                  '-Game Demo-', '-Addon DLC-']
+    if fast == 1 and gen_seed != 1:
+        tid_index.extend(['00040000', '0004000E'])
+        res_index.extend(['-eShop content-', '-eShop content Update-'])
     if tid_high in tid_index:
         return(res_index[tid_index.index(tid_high)], '---', '-------', '------', '', '---', '---')
         title_name_stripped, region, product_code, publisher, crypto_seed, curr_version, title_size
@@ -290,7 +301,8 @@ for i in range(len(sys.argv)):
                 decryptedTitleKey = file_handler.read(16)
                 # regular CDN URL for downloads off the CDN
                 base_url = 'http://ccs.cdn.c.shop.nintendowifi.net/ccs/download/' + (hexlify(title_id)).decode()
-                if checkAll == 0 and ((hexlify(title_id)).decode()).upper()[:8] != '00040000':
+                tid_high = ((hexlify(title_id)).decode()).upper()[:8]
+                if checkAll == 0 and (tid_high not in ['00040000', '0004000E', '0004008C']):
                     continue
                 # download tmd_var and set to object
                 try:
@@ -365,6 +377,8 @@ force_download = 0
 make_3ds = 1
 make_cia = 1
 checkKey = 0
+no_hash = 0
+no_wait = 0
 gen_seed = 0
 checkTempOut = None
 
@@ -373,7 +387,10 @@ for i in range(len(sys.argv)):
     if sys.argv[i] == '-redown': force_download = 1
     elif sys.argv[i] == '-no3ds': make_3ds = 0
     elif sys.argv[i] == '-nocia': make_cia = 0
+    elif sys.argv[i] == '-nobuild': make_cia = make_3ds = 0
     elif sys.argv[i] == '-check': checkKey = 1
+    elif sys.argv[i] == '-nohash': no_hash = 1
+    elif sys.argv[i] == '-nowait': no_wait = 1
     elif sys.argv[i] == '-seed': gen_seed = 1
 
 if (len(title_key) != 32 and not os.path.isfile('decTitleKeys.bin')) or len(title_id) != 16:
@@ -550,17 +567,18 @@ for i in range(content_count):
             print('Title size mismatch.  Download likely incomplete')
             print('Downloaded: ' + format(file_handler.tell(), 'd'))
             raise SystemExit(0)
-        file_handler.seek(0)
-        hash = sha256()
-        while file_handler.tell() != file_handlerSize:
-            hash.update(file_handler.read(0x1000000))
-            print('Checking Hash: ' + format(float(file_handler.tell()*100)/file_handlerSize,'.1f') + '% done\r', end=' ')
-        sha256file = hash.hexdigest()
-        if sha256file != (hexlify(cHASH)).decode():
-            print('hash mismatched, Decryption likely failed, wrong key or file modified?')
-            print('got hash: ' + sha256file)
-            raise SystemExit(0)
-        print('Hash verified successfully.')
+        if no_hash == 0:
+            file_handler.seek(0)
+            hash = sha256()
+            while file_handler.tell() != file_handlerSize:
+                hash.update(file_handler.read(0x1000000))
+                print('Checking Hash: ' + format(float(file_handler.tell()*100)/file_handlerSize,'.1f') + '% done\r', end=' ')
+            sha256file = hash.hexdigest()
+            if sha256file != (hexlify(cHASH)).decode():
+                print('hash mismatched, Decryption likely failed, wrong key or file modified?')
+                print('got hash: ' + sha256file)
+                raise SystemExit(0)
+            print('Hash verified successfully.')
         file_handler.seek(0x100)
         if (file_handler.read(4)).decode('UTF-8', 'ignore') != 'NCCH':
             make_cia = 0
@@ -576,18 +594,19 @@ for i in range(content_count):
     print('\n')
     command_cID = command_cID + ['-i', outfname + ':0x' + cIDX + ':0x' + cID]
 
-print('\n')
-print('The NCCH on eShop games is encrypted and cannot be used')
-print('without decryption on a 3DS. To fix this you should copy')
-print('all .dec files in the Title ID folder to \'/D9Game/\'')
-print('on your SD card, then use the following option in Decrypt9:')
-print('\n')
-print('\'Game Decryptor Options\' > \'NCCH/NCSD Decryptor\'')
-print('\n')
-print('Once you have decrypted the files, copy the .dec files from')
-print('\'/D9Game/\' back into the Title ID folder, overwriting them.')
-print('\n')
-input('Press Enter once you have done this...')
+if no_wait == 0:
+    print('\n')
+    print('The NCCH on eShop games is encrypted and cannot be used')
+    print('without decryption on a 3DS. To fix this you should copy')
+    print('all .dec files in the Title ID folder to \'/D9Game/\'')
+    print('on your SD card, then use the following option in Decrypt9:')
+    print('\n')
+    print('\'Game Decryptor Options\' > \'NCCH/NCSD Decryptor\'')
+    print('\n')
+    print('Once you have decrypted the files, copy the .dec files from')
+    print('\'/D9Game/\' back into the Title ID folder, overwriting them.')
+    print('\n')
+    input('Press Enter once you have done this...')
 
 # create the RSF File
 rom_rsf = 'Option:\n  MediaFootPadding: true\n  EnableCrypt: false\nSystemControlInfo:\n  SaveDataSize: $(SaveSize)K'
@@ -605,11 +624,11 @@ if '' in dot3ds_command_array:
 
 if make_cia == 1:
     print('\nBuilding ' + title_id + '.cia...')
-    call(dotcia_command_array, stderr=STDOUT)
+    call(dotcia_command_array, stderr=STDOUT, shell=True)
 
 if make_3ds == 1:
     print('\nBuilding ' + title_id + '.3ds...')
-    call(dot3ds_command_array, stderr=STDOUT)
+    call(dot3ds_command_array, stderr=STDOUT, shell=True)
 
 if os.path.isfile('rom.rsf'):
     os.remove('rom.rsf')
