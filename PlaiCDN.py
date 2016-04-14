@@ -99,9 +99,9 @@ def getTitleInfo(title_id):
                  '0004009B', '00040138', '00040130', '00040001',
                  '00048005', '0004800F', '00040002', '0004008C']
     res_index = ['-System Application-', '-System Data Archive-', '-System Data Archive-', '-System Data Archive-',
-                 '-System Applet-', '-System Module-', '-System Module-', '-System Firmware-',
-                 '-Download Play Title-', '-TWL System Application-', '-TWL System Data Archive-',
-                 '-Game Demo-', '-Addon DLC-']
+                 '-System Applet-', '-System Module-', '-System Firmware-', '-Download Play Title-',
+                 '-TWL System Application-', '-TWL System Data Archive-', '-Game Demo-', '-Addon DLC-']
+    
     if tid_high in tid_index:
         return(res_index[tid_index.index(tid_high)], '---', '-------', '------', '', '---', '---')
         title_name_stripped, region, product_code, publisher, crypto_seed, curr_version, title_size
