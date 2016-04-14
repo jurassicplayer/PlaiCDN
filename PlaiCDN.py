@@ -387,10 +387,12 @@ for i in range(len(sys.argv)):
     if sys.argv[i] == '-redown': force_download = 1
     elif sys.argv[i] == '-no3ds': make_3ds = 0
     elif sys.argv[i] == '-nocia': make_cia = 0
-    elif sys.argv[i] == '-nobuild': make_cia = make_3ds = 0
     elif sys.argv[i] == '-check': checkKey = 1
-    elif sys.argv[i] == '-nohash': no_hash = 1
     elif sys.argv[i] == '-nowait': no_wait = 1
+    elif sys.argv[i] == '-nohash': no_hash = no_wait = 1
+    elif sys.argv[i] == '-nobuild': 
+        make_cia = make_3ds = 0
+        no_wait = 1
     elif sys.argv[i] == '-seed': gen_seed = 1
 
 if (len(title_key) != 32 and not os.path.isfile('decTitleKeys.bin')) or len(title_id) != 16:
