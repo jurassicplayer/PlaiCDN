@@ -108,27 +108,22 @@ def system_usage():
     print('-check    : checks if title id matches key')
     print('-checkbin : checks titlekeys from decTitleKeys.bin')
     print('-checkall : check all titlekeys when using -checkbin')
-    print('-fast     : skips name retrieval when using -checkbin')
+    print('-fast     : skips name retrieval when using -checkbin, cannot be used with seed/seeddb')
+    print('-seeddb   : generates a single seeddb.bin')
+    print('-seed     : generates game-specific seeddb file')
     raise SystemExit(0)
 
 def getTitleInfo(title_id):
     tid_high = ((hexlify(title_id)).decode()).upper()[:8]
-    if fast == 0:
-        tid_index = ['00040010', '0004001B', '000400DB', '0004009B',
-                     '00040030', '00040130', '00040138', '00040001',
-                     '00048005', '0004800F', '00040002', '0004008C']
-        res_index = ['-System Application-', '-System Data Archive-', '-System Data Archive-', '-System Data Archive-',
-                     '-System Applet-', '-System Module-', '-System Firmware-', '-Download Play Title-',
-                     '-TWL System Application-', '-TWL System Data Archive-', '-Game Demo-', '-Addon DLC-']
-    if fast == 1:
-        tid_index = ['00040010', '0004001B', '000400DB', '0004009B',
-                     '00040030', '00040130', '00040138', '00040001',
-                     '00048005', '0004800F', '00040002', '0004008C',
-                     '00040000', '0004000E']
-        res_index = ['-System Application-', '-System Data Archive-', '-System Data Archive-', '-System Data Archive-',
-                     '-System Applet-', '-System Module-', '-System Firmware-', '-Download Play Title-',
-                     '-TWL System Application-', '-TWL System Data Archive-', '-Game Demo-', '-Addon DLC-',
-                     '-eShop content-', '-eShop content Update-']
+    tid_index = ['00040010', '0004001B', '000400DB', '0004009B',
+                 '00040030', '00040130', '00040138', '00040001',
+                 '00048005', '0004800F', '00040002', '0004008C']
+    res_index = ['-System Application-', '-System Data Archive-', '-System Data Archive-', '-System Data Archive-',
+                 '-System Applet-', '-System Module-', '-System Firmware-', '-Download Play Title-',
+                 '-TWL System Application-', '-TWL System Data Archive-', '-Game Demo-', '-Addon DLC-']
+    if fast == 1 and gen_seed != 1:
+        tid_index.extend(['00040000', '0004000E'])
+        res_index.extend(['-eShop content-', '-eShop content Update-'])
     if tid_high in tid_index:
         return(res_index[tid_index.index(tid_high)], '---', '-------', '------', '', '---', '---')
         title_name_stripped, region, product_code, publisher, crypto_seed, curr_version, title_size
@@ -212,6 +207,49 @@ def getTitleInfo(title_id):
 
     return(title_name_stripped, region, product_code, publisher, crypto_seed, curr_version, title_size)
 
+#=========================================================================================================
+# Seeddb implementation
+class crypto_handler:
+    def __init__(self):
+        self.crypto_db = {}
+    def add_seed(self, title_id, title_key):
+        self.crypto_db.update({title_id: title_key})
+    def gen_seeddb(self):
+        if self.crypto_db:
+            if '-seeddb' in sys.argv:
+                self.write_seed()
+            if '-seed' in sys.argv:
+                for title_id in self.crypto_db:
+                    self.write_seed(title_id)
+    def write_seed(self, title_id=None):
+        # Providing title_id makes a title specific seeddb
+        if title_id:
+            pmkdir(title_id)
+            outsname = title_id+'/seeddb.bin'
+            seed_db = {title_id: self.crypto_db[title_id]}
+        else:
+            outsname = 'seeddb.bin'
+            seed_db = self.crypto_db
+        with open(outsname, 'wb') as seeddb_handler:
+            seed_count = hex(len(seed_db)).split('x')[1].zfill(32)
+            seed_count = "".join(reversed([seed_count[i:i+2] for i in range(0, len(seed_count), 2)]))
+            seeddb_handler.write(unhexlify(seed_count))
+            for title_id in seed_db:
+                # Title_id is reversed in seeddb.bin
+                seed_title = "".join(reversed([title_id[i:i+2] for i in range(0, len(title_id), 2)]))
+                seed_crypto = seed_db[title_id]
+                seed_padding = "".zfill(16)
+                seed = unhexlify(seed_title+seed_crypto+seed_padding)
+                seeddb_handler.write(seed)
+            seeddb_handler.close()
+gen_seed = 0
+fast = 0
+for i in range(len(sys.argv)):
+    if sys.argv[i] in ['-seed', '-seeddb']: gen_seed = 1
+    elif sys.argv[i] == '-fast': fast = 1
+crypto_db = crypto_handler()
+#=========================================================================================================
+
 #from https://github.com/Relys/3DS_Multi_Decryptor/blob/master/ticket-title_key_stuff/printKeys.py
 for i in range(len(sys.argv)):
     if sys.argv[i] == '-deckey':
@@ -240,7 +278,7 @@ for i in range(len(sys.argv)):
         try:
             tmd_var = urllib.request.urlopen(base_url + '/tmd')
         except urllib.error.URLError as e:
-            print('Could not retrieve tmd; received error: ' + e)
+            print('Could not retrieve tmd; received error: ' + str(e))
             continue
         tmd_var = tmd_var.read()
 
@@ -286,6 +324,11 @@ for i in range(len(sys.argv)):
             print('Title Size: ' + ret_title_size + 'mb')
         if ret_crypto_seed != '':
             print('9.6 Crypto Seed: ' + ret_crypto_seed)
+            # Add crypto seed to crypto database
+            crypto_db.add_seed(title_id, ret_crypto_seed)
+        # Generate seeddb.bin from crypto seed database
+        if gen_seed == 1:
+            crypto_db.gen_seeddb()
         print('\n')
         raise SystemExit(0)
 
@@ -311,10 +354,9 @@ for i in range(len(sys.argv)):
                 decryptedTitleKey = file_handler.read(16)
                 # regular CDN URL for downloads off the CDN
                 base_url = 'http://ccs.cdn.c.shop.nintendowifi.net/ccs/download/' + (hexlify(title_id)).decode()
-                if checkAll == 0 and ((hexlify(title_id)).decode()).upper()[:8] != '00040000':
-                 if checkAll == 0 and ((hexlify(title_id)).decode()).upper()[:8] != '0004000E':
-                  if checkAll == 0 and ((hexlify(title_id)).decode()).upper()[:8] != '0004008C':
-                   continue
+                tid_high = ((hexlify(title_id)).decode()).upper()[:8]
+                if checkAll == 0 and (tid_high not in ['00040000', '0004000E', '0004008C']):
+                    continue
                 # download tmd_var and set to object
                 try:
                     tmd_var = urllib.request.urlopen(base_url + '/tmd')
@@ -357,6 +399,12 @@ for i in range(len(sys.argv)):
                     # format: Title Name (left aligned) gets 40 characters, Title ID (Right aligned) gets 16, Titlekey (Right aligned) gets 32, and Region (Right aligned) gets 3
                     # anything longer is truncated, anything shorter is padded
                     print("{0:<40.40} {1:>16} {2:>32} {3:>3}".format(ret_title_name_stripped, (hexlify(title_id).decode()).strip(), ((hexlify(decryptedTitleKey)).decode()).strip(), ret_region))
+                    # Add crypto seed to crypto database
+                    if ret_crypto_seed != '':
+                        crypto_db.add_seed((hexlify(title_id).decode()).strip(), ret_crypto_seed)
+            # Generate seeddb.bin from crypto seed database
+            if gen_seed == 1:
+                crypto_db.gen_seeddb()
             raise SystemExit(0)
 
 #if args for deckeys or checkbin weren't used above, remaining functions require 3 args minimum
@@ -370,6 +418,8 @@ force_download = 0
 make_3ds = 1
 make_cia = 1
 checkKey = 0
+no_hash = 0
+no_wait = 0
 checkTempOut = None
 
 # check args
@@ -378,10 +428,30 @@ for i in range(len(sys.argv)):
     elif sys.argv[i] == '-no3ds': make_3ds = 0
     elif sys.argv[i] == '-nocia': make_cia = 0
     elif sys.argv[i] == '-check': checkKey = 1
+    elif sys.argv[i] == '-nowait': no_wait = 1
+    elif sys.argv[i] == '-nohash': no_hash = no_wait = 1
+    elif sys.argv[i] == '-nobuild': make_cia = make_3ds = 0, no_wait = 1
 
-if len(title_key) != 32 or len(title_id) != 16:
+if (len(title_key) != 32 and not os.path.isfile('decTitleKeys.bin')) or len(title_id) != 16:
     print('Invalid arguments')
     raise SystemExit(0)
+
+# pull title key from decTitleKeys.bin if available
+if len(title_key) != 32 and os.path.isfile('decTitleKeys.bin'):
+    decryptedKeys = {}
+    with open('decTitleKeys.bin', 'rb') as file_handler:
+        nEntries = os.fstat(file_handler.fileno()).st_size / 32
+        file_handler.seek(16, os.SEEK_SET)
+        for i in range(int(nEntries)):
+            file_handler.seek(8, os.SEEK_CUR)
+            tmp_title_id = file_handler.read(8)
+            decryptedTitleKey = file_handler.read(16)
+            decryptedKeys.update({(hexlify(tmp_title_id)).decode() : (hexlify(decryptedTitleKey)).decode()})
+    try:
+        title_key = decryptedKeys[title_id]
+    except:
+        print('Title key not available in decTitleKeys.bin')
+        raise SystemExit(0)
 
 # set CDN default URL
 base_url = 'http://ccs.cdn.c.shop.nintendowifi.net/ccs/download/' + title_id
@@ -461,7 +531,7 @@ for i in range(content_count):
     print('Content Hash:  ' + (hexlify(cHASH)).decode())
     # set output location to a folder named for title id and contentid.dec as the file
     outfname = title_id + '/' + cID + '.dec'
-    if checkKey == 1:
+    if checkKey == 1 or gen_seed == 1:
         if (not os.path.isfile('ctr-common-1.crt')) or (not os.path.isfile('ctr-common-1.crt')):
             print('\nCould not find certificate files, all secure connections will fail!')
         print('\nDownloading and decrypting the first 272 bytes of ' + cID + ' for key check\n')
@@ -499,12 +569,17 @@ for i in range(content_count):
         print('Title Size: ' + ret_title_size + 'mb')
         if ret_crypto_seed != '':
             print('9.6 Crypto Seed: ' + ret_crypto_seed)
+            # Add crypto seed to crypto database
+            crypto_db.add_seed(title_id, ret_crypto_seed)
         print('\n')
         if 'NCCH' not in checkTempOut.decode('UTF-8', 'ignore'):
             print('\nERROR: Decryption failed; invalid titlekey?')
             raise SystemExit(0)
         print('\nTitlekey successfully verified to match title ID ' + title_id)
-        raise SystemExit(0)
+        if gen_seed == 1:
+            crypto_db.gen_seeddb()
+        if checkKey == 1:
+            raise SystemExit(0)
     # if the content location does not exist, redown is set, or the size is incorrect redownload
     if os.path.exists(outfname) == 0 or force_download == 1 or os.path.getsize(outfname) != unpack('>Q', tmd_var[cOffs+8:cOffs+16])[0]:
         response = urllib.request.urlopen(base_url + '/' + cID)
@@ -517,18 +592,18 @@ for i in range(content_count):
             print('Title size mismatch.  Download likely incomplete')
             print('Downloaded: ' + format(file_handler.tell(), 'd'))
             raise SystemExit(0)
-        file_handler.seek(0)
-        hash = sha256()
-        while file_handler.tell() != file_handlerSize:
-            hash.update(file_handler.read(0x1000000))
-            print('Checking Hash: ' + format(float(file_handler.tell()*100)/file_handlerSize,'.1f') + '% done\r', end=' ')
-        sha256file = hash.hexdigest()
-        if sha256file != (hexlify(cHASH)).decode():
-            print('hash mismatched, Decryption likely failed, wrong key or file modified?')
-            print('got hash: ' + sha256file)
-            if nohash == 0:
+        if no_hash == 0:
+            file_handler.seek(0)
+            hash = sha256()
+            while file_handler.tell() != file_handlerSize:
+                hash.update(file_handler.read(0x1000000))
+                print('Checking Hash: ' + format(float(file_handler.tell()*100)/file_handlerSize,'.1f') + '% done\r', end=' ')
+            sha256file = hash.hexdigest()
+            if sha256file != (hexlify(cHASH)).decode():
+                print('hash mismatched, Decryption likely failed, wrong key or file modified?')
+                print('got hash: ' + sha256file)
                 raise SystemExit(0)
-        print('Hash verified successfully.')
+            print('Hash verified successfully.')
         file_handler.seek(0x100)
         if (file_handler.read(4)).decode('UTF-8', 'ignore') != 'NCCH':
             make_cia = 0
@@ -545,7 +620,7 @@ for i in range(content_count):
     command_cID = command_cID + ['-i', outfname + ':0x' + cIDX + ':0x' + cID]
 
 # FUCKING FIX THIS
-if nowait == 0:
+if no_wait == 0:
     print('\n')
     print('The NCCH on eShop games is encrypted and cannot be used')
     print('without decryption on a 3DS. To fix this you should copy')
