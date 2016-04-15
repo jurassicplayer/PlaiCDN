@@ -53,7 +53,7 @@ def report_chunk(bytes_so_far, chunk_size, total_size):
     sys.stdout.write('\rDownloaded and decrypted %d of %d bytes (%0.2f%%)' % (bytes_so_far, total_size, percent))
     sys.stdout.flush()
     if bytes_so_far >= total_size:
-        print('\n')
+        print('')
 
 # download in 0x200000 byte chunks, decrypt the chunk with IVs described below, then write the decrypted chunk to disk (half the file size of decrypting separately!)
 def read_chunk(response, outfname, intitle_key, first_iv, chunk_size=0x200000, report_hook=None):
@@ -82,25 +82,25 @@ def read_chunk(response, outfname, intitle_key, first_iv, chunk_size=0x200000, r
     file_handler.close()
 
 def system_usage():
-    print('Usage: PlaiCDN <TitleID TitleKey> <Options> to create your content')
+    print('Usage: PlaiCDN <TitleID TitleKey> <Options> for content options')
     print('-redown   : redownload content')
     print('-no3ds    : don\'t build 3DS file')
     print('-nocia    : don\'t build CIA file')
     print('-nobuild  : don\'t build 3DS or CIA')
     print('-nohash   : ignore hash checks')
     print('-nowait   : no crypt message/waiting for input')
-    print('')
-    print('Usage: PlaiCDN <TitleID> -info to display detailed metadata')
-    print('')
-    print('Usage: PlaiCDN <Options> to print or check decTitleKeys.bin keys')
-    print('-deckey   : print keys from decTitleKeys.bin')
     print('-check    : checks if title id matches key')
+    print('')
+    print('Usage: PlaiCDN <TitleID> for general options')
+    print('-info     : to display detailed metadata')
+    print('-seed     : generates game-specific seeddb file when using -info')
+    print('')
+    print('Usage: PlaiCDN <Options> for decTitleKeys.bin options')
+    print('-deckey   : print keys from decTitleKeys.bin')
     print('-checkbin : checks titlekeys from decTitleKeys.bin')
     print('-checkall : check all titlekeys when using -checkbin')
     print('-fast     : skips name retrieval when using -checkbin, cannot be used with seed/seeddb')
     print('-seeddb   : generates a single seeddb.bin')
-    print('-seed     : generates game-specific seeddb file')
-    
     raise SystemExit(0)
 
 def getTitleInfo(title_id):
@@ -113,7 +113,7 @@ def getTitleInfo(title_id):
                  '-TWL System Application-', '-TWL System Data Archive-', '-Game Demo-', '-Addon DLC-']
     if fast == 1 and gen_seed != 1:
         tid_index.extend(['00040000', '0004000E'])
-        res_index.extend(['-eShop content-', '-eShop content Update-'])
+        res_index.extend(['-eShop Content-', '-eShop Content Update-'])
     if tid_high in tid_index:
         return(res_index[tid_index.index(tid_high)], '---', '-------', '------', '', '---', '---')
         title_name_stripped, region, product_code, publisher, crypto_seed, curr_version, title_size
@@ -196,7 +196,7 @@ def getTitleInfo(title_id):
         publisher = ''.join([i if ord(i) < 128 else ' ' for i in publisher])
 
     return(title_name_stripped, region, product_code, publisher, crypto_seed, curr_version, title_size)
-    
+
 #=========================================================================================================
 # Seeddb implementation
 class crypto_handler:
@@ -208,7 +208,7 @@ class crypto_handler:
         if self.crypto_db:
             if '-seeddb' in sys.argv:
                 self.write_seed()
-            if '-seed' in sys.argv:
+            else:
                 for title_id in self.crypto_db:
                     self.write_seed(title_id)
     def write_seed(self, title_id=None):
@@ -282,7 +282,7 @@ for i in range(len(sys.argv)):
             # If content count above 8 (not a normal application), don't make 3ds
             if unpack('>H', tmd_var[cOffs+4:cOffs+6])[0] >= 8:
                 make_3ds = 0
-            print('\n')
+            print('')
             print('Content ID:    ' + cID)
             print('Content Index: ' + cIDX)
             print('Content Size:  ' + cSIZE)
@@ -319,7 +319,7 @@ for i in range(len(sys.argv)):
         # Generate seeddb.bin from crypto seed database
         if gen_seed == 1:
             crypto_db.gen_seeddb()
-        print('\n')
+        print('')
         raise SystemExit(0)
 
 for i in range(len(sys.argv)):
@@ -333,11 +333,11 @@ for i in range(len(sys.argv)):
             nEntries = os.fstat(file_handler.fileno()).st_size / 32
             file_handler.seek(16, os.SEEK_SET)
             final_output = []
-            print('\n')
+            print('')
             # format: Title Name (left aligned) gets 40 characters, Title ID (Right aligned) gets 16, Titlekey (Right aligned) gets 32, and Region (Right aligned) gets 3
             # anything longer is truncated, anything shorter is padded
-            print("{0:<60} {1:>16} {2:>32} {3:>3}".format('Name', 'Title ID', 'Titlekey', 'Region'))
-            print("-"*120)
+            print("{0:<40} {1:>16} {2:>32} {3:>3}".format('Name', 'Title ID', 'Titlekey', 'Region'))
+            print("-"*100)
             for i in range(int(nEntries)):
                 file_handler.seek(8, os.SEEK_CUR)
                 title_id = file_handler.read(8)
@@ -411,6 +411,8 @@ checkKey = 0
 no_hash = 0
 no_wait = 0
 checkTempOut = None
+nocert = 0
+first_pass = 1
 
 # check args
 for i in range(len(sys.argv)):
@@ -420,7 +422,10 @@ for i in range(len(sys.argv)):
     elif sys.argv[i] == '-check': checkKey = 1
     elif sys.argv[i] == '-nowait': no_wait = 1
     elif sys.argv[i] == '-nohash': no_hash = no_wait = 1
-    elif sys.argv[i] == '-nobuild': make_cia = make_3ds = 0, no_wait = 1
+    elif sys.argv[i] == '-nobuild':
+        make_cia = 0
+        make_3ds = 0
+        no_wait = 1
 
 if (len(title_key) != 32 and not os.path.isfile('decTitleKeys.bin')) or len(title_id) != 16:
     print('Invalid arguments')
@@ -442,7 +447,7 @@ if len(title_key) != 32 and os.path.isfile('decTitleKeys.bin'):
     except:
         print('Title key not available in decTitleKeys.bin')
         raise SystemExit(0)
-    
+
 # set CDN default URL
 base_url = 'http://ccs.cdn.c.shop.nintendowifi.net/ccs/download/' + title_id
 
@@ -455,7 +460,8 @@ except urllib.error.URLError as e:
 tmd_var = tmd_var.read()
 
 #create folder
-pmkdir(title_id)
+if checkKey == 0:
+    pmkdir(title_id)
 
 # https://www.3dbrew.org/wiki/Title_metadata#Signature_Data
 if bytes('\x00\x01\x00\x04', 'UTF-8') not in tmd_var[:4]:
@@ -515,16 +521,13 @@ for i in range(content_count):
     # If content count above 8 (not a normal application), don't make 3ds
     if unpack('>H', tmd_var[cOffs+4:cOffs+6])[0] >= 8:
         make_3ds = 0
-    print('Content ID:    ' + cID)
-    print('Content Index: ' + cIDX)
-    print('Content Size:  ' + cSIZE)
-    print('Content Hash:  ' + (hexlify(cHASH)).decode())
     # set output location to a folder named for title id and contentid.dec as the file
     outfname = title_id + '/' + cID + '.dec'
-    if checkKey == 1 or gen_seed == 1:
+    if first_pass == 1:
         if (not os.path.isfile('ctr-common-1.crt')) or (not os.path.isfile('ctr-common-1.crt')):
             print('\nCould not find certificate files, all secure connections will fail!')
-        print('\nDownloading and decrypting the first 272 bytes of ' + cID + ' for key check\n')
+            nocert = 1
+        print('\nDownloading and decrypting the first 272 bytes of ' + cID + ' for key check...\n')
         # use range requests to download bytes 0 through 271, needed 272 instead of 260 because AES-128-CBC encrypts in chunks of 128 bits
         try:
             checkReq = urllib.request.Request('%s/%s'%(base_url, cID))
@@ -533,6 +536,8 @@ for i in range(content_count):
         except urllib.error.URLError as e:
             print('ERROR: Possibly wrong container?\n')
             raise SystemExit(0)
+
+        print('Fetching title metadata for ' + title_id + '\n')
         try:
             ret_title_name_stripped, ret_region, ret_product_code, ret_publisher, ret_crypto_seed, ret_curr_version, ret_title_size = getTitleInfo((unhexlify(title_id)))
         except (KeyboardInterrupt, SystemExit):
@@ -561,15 +566,20 @@ for i in range(content_count):
             print('9.6 Crypto Seed: ' + ret_crypto_seed)
             # Add crypto seed to crypto database
             crypto_db.add_seed(title_id, ret_crypto_seed)
-        print('\n')
+            crypto_db.gen_seeddb()
+        print('')
         if 'NCCH' not in checkTempOut.decode('UTF-8', 'ignore'):
             print('\nERROR: Decryption failed; invalid titlekey?')
             raise SystemExit(0)
-        print('\nTitlekey successfully verified to match title ID ' + title_id)
-        if gen_seed == 1:
-            crypto_db.gen_seeddb()
+        print('\nTitlekey successfully verified to match title ID ' + title_id + '...\n')
         if checkKey == 1:
             raise SystemExit(0)
+
+    print('Content ID:    ' + cID)
+    print('Content Index: ' + cIDX)
+    print('Content Size:  ' + cSIZE)
+    print('Content Hash:  ' + (hexlify(cHASH)).decode())
+
     # if the content location does not exist, redown is set, or the size is incorrect redownload
     if os.path.exists(outfname) == 0 or force_download == 1 or os.path.getsize(outfname) != unpack('>Q', tmd_var[cOffs+8:cOffs+16])[0]:
         response = urllib.request.urlopen(base_url + '/' + cID)
@@ -606,22 +616,36 @@ for i in range(content_count):
                 print('Not an NCCH container, likely DSiWare')
         file_handler.seek(0, os.SEEK_END)
         fSize += file_handler.tell()
-    print('\n')
+    print('')
     command_cID = command_cID + ['-i', outfname + ':0x' + cIDX + ':0x' + cID]
+    first_pass = 0
 
-# FUCKING FIX THIS
-if no_wait == 0:
-    print('\n')
-    print('The NCCH on eShop games is encrypted and cannot be used')
-    print('without decryption on a 3DS. To fix this you should copy')
-    print('all .dec files in the Title ID folder to \'/D9Game/\'')
-    print('on your SD card, then use the following option in Decrypt9:')
-    print('\n')
+if ret_crypto_seed == '' and nocert == 1 and no_wait == 0:
+    print('')
+    print('Could not check for 9.6 crypto seed automatically due to secure connection failure!')
+    print('')
+    print('If this is a 9.6+ game, then it will fail to load once installed unless the system')
+    print('connects to the eShop at least once after install to update seeddb, or you place')
+    print('the cert files in the current directory and rerun this script for manual decryption.')
+    print('')
+    input('Press Enter to continue...')
+
+if ret_crypto_seed != '' and no_wait == 0:
+    print('')
+    print('This is a 9.6+ eShop game which uses seed encryption.')
+    print('')
+    print('The NCCH on 9.6+ eShop games is seed encrypted and cannot be used')
+    print('without seed decryption on a 3DS. To fix this you should copy')
+    print('all .dec files and the generated seeddb.bin in the Title ID folder')
+    print('to \'/D9Game/\' on your SD card, then use the following option in Decrypt9:')
+    print('')
     print('\'Game Decryptor Options\' > \'NCCH/NCSD Decryptor\'')
-    print('\n')
+    print('')
     print('Once you have decrypted the files, copy the .dec files from')
     print('\'/D9Game/\' back into the Title ID folder, overwriting them.')
-    print('\n')
+    print('')
+    print('NOTE: The generated .3ds files will not work with Gateway')
+    print('')
     input('Press Enter once you have done this...')
 
 # create the RSF File
@@ -640,11 +664,11 @@ if '' in dot3ds_command_array:
 
 if make_cia == 1:
     print('\nBuilding ' + title_id + '.cia...')
-    call(dotcia_command_array, stderr=STDOUT)
+    call(dotcia_command_array, stdout=DEVNULL, stderr=STDOUT)
 
 if make_3ds == 1:
     print('\nBuilding ' + title_id + '.3ds...')
-    call(dot3ds_command_array, stderr=STDOUT)
+    call(dot3ds_command_array, stdout=DEVNULL, stderr=STDOUT)
 
 if os.path.isfile('rom.rsf'):
     os.remove('rom.rsf')
