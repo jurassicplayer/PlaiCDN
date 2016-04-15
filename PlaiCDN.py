@@ -282,10 +282,6 @@ for i in range(len(sys.argv)):
             if unpack('>H', tmd_var[c_offs+4:c_offs+6])[0] >= 8:
                 make_3ds = 0
             print('')
-            print('Content ID:    ' + cID)
-            print('Content Index: ' + cIDX)
-            print('Content Size:  ' + cSIZE)
-            print('Content Hash:  ' + (hexlify(cHASH)).decode())
             print('Content ID:    ' + c_id)
             print('Content Index: ' + c_idx)
             print('Content Size:  ' + c_size)
