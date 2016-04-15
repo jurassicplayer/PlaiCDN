@@ -20,17 +20,6 @@ import ssl
 import sys
 import urllib.request, urllib.error, urllib.parse
 
-fast = 0
-nowait = 0
-nohash = 0
-nobuild = 0
-
-for i in range(len(sys.argv)):
-    if sys.argv[i] == '-fast': fast = 1
-    elif sys.argv[i] == '-nowait': nowait = 1
-    elif sys.argv[i] == '-nohash': nohash = 1
-    elif sys.argv[i] == '-nobuild': nobuild = 1
-
 ##########From http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
 def pmkdir(path):
     try:
@@ -260,7 +249,7 @@ for i in range(len(sys.argv)):
                 file_handler.seek(8, os.SEEK_CUR)
                 title_id = file_handler.read(8)
                 decrypted_title_key = file_handler.read(16)
-                print('%s: %s' % ((hexlify(title_id)).decode(), (hexlify(decrypted_title_key)).decode()))
+                print('{:} {:}'.format(codecs.encode(title_id, 'hex'), codecs.encode(decrypted_title_key, 'hex')))
         raise SystemExit(0)
 
 for i in range(len(sys.argv)):
@@ -398,10 +387,10 @@ for i in range(len(sys.argv)):
                 check_temp_out = decryptor.decrypt(check_temp_perm)[0x100:0x104]
 
                 if 'NCCH' not in check_temp_out.decode('UTF-8', 'ignore'):
-                    decryptor = AES.new(decrypted_title_key, AES.MODE_CBC, c_idx + '0000000000000000000000000000')
+                    decryptor = AES.new(decrypted_title_key, AES.MODE_CBC, unhexlify(c_idx + '0000000000000000000000000000'))
                     dsi_check_temp_out = decryptor.decrypt(check_temp_perm)[0x60:0x64]
 
-                if 'NCCH' in check_temp_out.decode('UTF-8', 'ignore') or 'WfA\0' in dsi_check_temp_out.decode('UTF-8', 'ignore'):
+                if 'NCCH' in check_temp_out.decode('UTF-8', 'ignore') or 'WfA' in dsi_check_temp_out.decode('UTF-8', 'ignore'):
                     # format: Title Name (left aligned) gets 40 characters, Title ID (Right aligned) gets 16, Titlekey (Right aligned) gets 32, and Region (Right aligned) gets 3
                     # anything longer is truncated, anything shorter is padded
                     print("{0:<40.40} {1:>16} {2:>32} {3:>3}".format(ret_title_name_stripped, (hexlify(title_id).decode()).strip(), ((hexlify(decrypted_title_key)).decode()).strip(), ret_region))
@@ -585,9 +574,9 @@ for i in range(content_count):
             crypto_db.gen_seeddb()
         print('')
         if 'NCCH' not in check_temp_out.decode('UTF-8', 'ignore'):
-            decryptor = AES.new(decrypted_title_key, AES.MODE_CBC, c_idx + '0000000000000000000000000000')
+            decryptor = AES.new(unhexlify(title_key), AES.MODE_CBC, unhexlify(c_idx + '0000000000000000000000000000'))
             dsi_check_temp_out = decryptor.decrypt(check_temp_perm)[0x60:0x64]
-        if 'NCCH' not in check_temp_out.decode('UTF-8', 'ignore') and 'WfA\0' not in dsi_check_temp_out.decode('UTF-8', 'ignore'):
+        if 'NCCH' not in check_temp_out.decode('UTF-8', 'ignore') and 'WfA' not in dsi_check_temp_out.decode('UTF-8', 'ignore'):
             print('\nERROR: Decryption failed; invalid titlekey?')
             raise SystemExit(0)
         print('\nTitlekey successfully verified to match title ID ' + title_id + '...\n')
@@ -628,7 +617,7 @@ for i in range(content_count):
             make_cia = 0
             make_3ds = 0
             file_handler.seek(0x60)
-            if file_handler.read(4) != 'WfA\0':
+            if 'WfA' not in file_handler.read(4).decode():
                 print('Not NCCH, nor DSiWare, file likely corrupted')
                 raise SystemExit(0)
             else:
