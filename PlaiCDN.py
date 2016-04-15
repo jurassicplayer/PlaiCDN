@@ -282,17 +282,14 @@ for i in range(len(sys.argv)):
             if unpack('>H', tmd_var[c_offs+4:c_offs+6])[0] >= 8:
                 make_3ds = 0
             print('')
-<<<<<<< HEAD
             print('Content ID:    ' + cID)
             print('Content Index: ' + cIDX)
             print('Content Size:  ' + cSIZE)
             print('Content Hash:  ' + (hexlify(cHASH)).decode())
-=======
             print('Content ID:    ' + c_id)
             print('Content Index: ' + c_idx)
             print('Content Size:  ' + c_size)
             print('Content Hash:  ' + (hexlify(c_hash)).decode())
->>>>>>> refs/remotes/Plailect/master
         try:
             ret_title_name_stripped, ret_region, ret_product_code, ret_publisher, ret_crypto_seed, ret_curr_version, ret_title_size = getTitleInfo((unhexlify(title_id)))
         except (KeyboardInterrupt, SystemExit):
@@ -344,11 +341,7 @@ for i in range(len(sys.argv)):
             # anything longer is truncated, anything shorter is padded
             print("{0:<40} {1:>16} {2:>32} {3:>3}".format('Name', 'Title ID', 'Titlekey', 'Region'))
             print("-"*100)
-<<<<<<< HEAD
-            for i in range(int(nEntries)):
-=======
             for i in range(int(n_entries)):
->>>>>>> refs/remotes/Plailect/master
                 file_handler.seek(8, os.SEEK_CUR)
                 title_id = file_handler.read(8)
                 decrypted_title_key = file_handler.read(16)
@@ -426,11 +419,7 @@ make_cia = 1
 check_key = 0
 no_hash = 0
 no_wait = 0
-<<<<<<< HEAD
-checkTempOut = None
-=======
 check_temp_out = None
->>>>>>> refs/remotes/Plailect/master
 nocert = 0
 first_pass = 1
 
@@ -480,11 +469,7 @@ except urllib.error.URLError as e:
 tmd_var = tmd_var.read()
 
 #create folder
-<<<<<<< HEAD
-if checkKey == 0:
-=======
 if check_key == 0:
->>>>>>> refs/remotes/Plailect/master
     pmkdir(title_id)
 
 # https://www.3dbrew.org/wiki/Title_metadata#Signature_Data
@@ -546,20 +531,12 @@ for i in range(content_count):
     if unpack('>H', tmd_var[c_offs+4:c_offs+6])[0] >= 8:
         make_3ds = 0
     # set output location to a folder named for title id and contentid.dec as the file
-<<<<<<< HEAD
-    outfname = title_id + '/' + cID + '.dec'
-=======
     f_out = title_id + '/' + c_id + '.dec'
->>>>>>> refs/remotes/Plailect/master
     if first_pass == 1:
         if (not os.path.isfile('ctr-common-1.crt')) or (not os.path.isfile('ctr-common-1.crt')):
             print('\nCould not find certificate files, all secure connections will fail!')
             nocert = 1
-<<<<<<< HEAD
-        print('\nDownloading and decrypting the first 272 bytes of ' + cID + ' for key check...\n')
-=======
         print('\nDownloading and decrypting the first 272 bytes of ' + c_id + ' for key check...\n')
->>>>>>> refs/remotes/Plailect/master
         # use range requests to download bytes 0 through 271, needed 272 instead of 260 because AES-128-CBC encrypts in chunks of 128 bits
         try:
             check_req = urllib.request.Request('%s/%s'%(base_url, c_id))
@@ -600,19 +577,6 @@ for i in range(content_count):
             crypto_db.add_seed(title_id, ret_crypto_seed)
             crypto_db.gen_seeddb()
         print('')
-<<<<<<< HEAD
-        if 'NCCH' not in checkTempOut.decode('UTF-8', 'ignore'):
-            print('\nERROR: Decryption failed; invalid titlekey?')
-            raise SystemExit(0)
-        print('\nTitlekey successfully verified to match title ID ' + title_id + '...\n')
-        if checkKey == 1:
-            raise SystemExit(0)
-
-    print('Content ID:    ' + cID)
-    print('Content Index: ' + cIDX)
-    print('Content Size:  ' + cSIZE)
-    print('Content Hash:  ' + (hexlify(cHASH)).decode())
-=======
         if 'NCCH' not in check_temp_out.decode('UTF-8', 'ignore'):
             decryptor = AES.new(unhexlify(title_key), AES.MODE_CBC, unhexlify(c_idx + '0000000000000000000000000000'))
             dsi_check_temp_out = decryptor.decrypt(check_temp_perm)[0x60:0x64]
@@ -627,7 +591,6 @@ for i in range(content_count):
     print('Content Index: ' + c_idx)
     print('Content Size:  ' + c_size)
     print('Content Hash:  ' + (hexlify(c_hash)).decode())
->>>>>>> refs/remotes/Plailect/master
 
     # if the content location does not exist, redown is set, or the size is incorrect redownload
     if os.path.exists(f_out) == 0 or force_download == 1 or os.path.getsize(f_out) != unpack('>Q', tmd_var[c_offs+8:c_offs+16])[0]:
@@ -666,11 +629,7 @@ for i in range(content_count):
         file_handler.seek(0, os.SEEK_END)
         fSize += file_handler.tell()
     print('')
-<<<<<<< HEAD
-    command_cID = command_cID + ['-i', outfname + ':0x' + cIDX + ':0x' + cID]
-=======
     command_c_id = command_c_id + ['-i', f_out + ':0x' + c_idx + ':0x' + c_id]
->>>>>>> refs/remotes/Plailect/master
     first_pass = 0
 
 if ret_crypto_seed == '' and nocert == 1 and no_wait == 0:
