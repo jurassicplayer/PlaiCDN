@@ -158,9 +158,8 @@ def getTitleInfo(title_id):
     region = ''
 
     # try loop to figure out which region the title is from; there is no easy way to do this other than try them all
-    for i in range(len(region_array)):
+    for country_code in region_array:
         try:
-            country_code = region_array[i]
             title_request = urllib.request.Request(samurai_url + country_code + '/title/' + ns_uid)
             titleResponse = urllib.request.urlopen(title_request, context=ctr_context)
             ec_request = urllib.request.Request(ec_url + country_code + '/title/' + ns_uid + '/ec_info')
