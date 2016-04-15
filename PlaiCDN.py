@@ -715,10 +715,6 @@ if '' in dotcia_command_array:
 if '' in dot3ds_command_array:
     dot3ds_command_array.remove('')
 
-if nobuild == 1:
-    make_cia = 0
-    make_3ds = 0
-
 if make_cia == 1:
     print('\nBuilding ' + title_id + '.cia...')
     call(dotcia_command_array, stdout=DEVNULL, stderr=STDOUT)
